@@ -1,34 +1,393 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página Familiar</title>
-    <style>
-        body {
-            background: #f2f2f2;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 40px;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            max-width: 600px;
-            margin: auto;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
-        }
-        h1 {
-            color: #333;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>POS - Restaurante familiar</title>
+
+<!-- Estilos (limpios y responsive) -->
+<style>
+  :root{
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --accent: #10b981;
+    --danger: #ef4444;
+    --radius: 12px;
+    --shadow: 0 6px 18px rgba(16,24,40,0.06);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:#0f172a}
+  .container{max-width:1100px;margin:20px auto;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+  .layout{display:grid;grid-template-columns:1fr 380px;gap:18px}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr} }
+
+  /* Panel productos */
+  .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+  .filters{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .search, select, input {padding:8px 10px;border-radius:8px;border:1px solid #e6e9ef;background:#fff}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media (max-width:700px){ .grid{grid-template-columns:repeat(1,1fr)} }
+
+  .card{
+    background:linear-gradient(180deg,#fff,#fcfdff);
+    border-radius:10px;padding:12px;border:1px solid rgba(0,0,0,0.04);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .left{display:flex;gap:12px;align-items:center}
+  .thumb{width:64px;height:64px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted)}
+  .meta{display:flex;flex-direction:column}
+  .name{font-weight:600}
+  .price{color:var(--primary);font-weight:700;margin-top:4px}
+  .actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .qty{width:80px;padding:6px;border-radius:8px;border:1px solid #e6e9ef}
+  .btn{padding:8px 12px;border-radius:8px;border:0;background:var(--primary);color:#fff;cursor:pointer}
+  .btn.secondary{background:#f3f4f6;color:#0f172a}
+  .btn.rapid{background:var(--accent)}
+  .btn.danger{background:var(--danger)}
+
+  /* Panel lateral - control & reportes */
+  .side{position:sticky;top:20px}
+  .box{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+  .small{font-size:13px;color:var(--muted)}
+  .report-numbers{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .stat{flex:1;min-width:110px;background:#f8fafc;padding:10px;border-radius:8px;text-align:center}
+  .stat h3{margin:0;font-size:16px}
+  .stat p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f5f9;font-size:14px}
+  th{color:var(--muted);font-weight:600;font-size:13px}
+
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+
+  /* Toast */
+  .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:10px 16px;border-radius:8px;box-shadow:0 8px 20px rgba(2,6,23,0.4);display:none}
+</style>
 </head>
 <body>
-    <div class="card">
-        <h1>👨‍👩‍👧‍👦 Página Familiar</h1>
-        <p>Bienvenidos a nuestra página privada familiar.</p>
-        <p>Aquí podremos compartir fotos, mensajes y cosas importantes.</p>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🍽️ POS - Restaurante Familiar</h1>
+        <div class="sub">Registrar ventas rápido — diseñado para celular</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="cajero" placeholder="Nombre cajero (opcional)" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef" />
+        <select id="filtrocategoria" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+          <option value="">Todas las categorías</option>
+        </select>
+        <button id="btnRefrescar" class="btn secondary">Actualizar</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Lista productos -->
+      <div>
+        <div class="panel">
+          <div class="filters">
+            <input id="search" class="search" placeholder="Buscar producto..." />
+            <div style="flex:1"></div>
+            <select id="metrica" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+              <option value="precio">Ordenar por precio</option>
+              <option value="ventas">Ordenar por ventas (report)</option>
+            </select>
+          </div>
+
+          <div id="grid" class="grid">
+            <!-- tarjetas se generan aquí -->
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3 style="margin:0 0 8px">Registro rápido</h3>
+          <div class="small">Vender un producto con botones rápidos:</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <select id="quickSelect" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef"></select>
+            <input id="quickQty" type="number" min="1" value="1" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef;width:90px" />
+            <select id="quickPago" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+            </select>
+            <button id="quickSell" class="btn rapid">Vender</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel lateral -->
+      <aside class="side">
+        <div class="box">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Reporte últimos</div>
+              <strong id="diasLabel">7 días</strong>
+            </div>
+            <div style="text-align:right">
+              <select id="selectDias" style="padding:6px;border-radius:8px;border:1px solid #e6e9ef">
+                <option value="7">7 días</option>
+                <option value="30">30 días</option>
+                <option value="90">90 días</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="report-numbers">
+            <div class="stat"><h3 id="ingresos">S/. 0.00</h3><p>Ingresos</p></div>
+            <div class="stat"><h3 id="articulos">0</h3><p>Productos vendidos</p></div>
+            <div class="stat"><h3 id="top1">—</h3><p>Más vendido</p></div>
+          </div>
+
+          <div id="reportTable" style="margin-top:12px">
+            <!-- tabla de items -->
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="btnExport" class="btn secondary">Abrir hoja</button>
+            <button id="btnClear" class="btn danger">Borrar ventas hoy</button>
+          </div>
+        </div>
+
+        <div class="box">
+          <h4 style="margin:0 0 8px">Configuración</h4>
+          <div class="small">URL API (Apps Script)</div>
+          <input id="apiUrl" placeholder="Pega aquí tu API URL" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ef" />
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="guardarApi" class="btn">Guardar</button>
+            <button id="probarApi" class="btn secondary">Probar</button>
+          </div>
+        </div>
+      </aside>
     </div>
+
+    <footer>
+      Sistema simple para ventas locales — no requiere usuarios para el personal. Si necesitas funciones extra, lo escalamos.
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+/* ------------------ CONFIGURA AQUÍ (REEMPLAZA POR TU URL) ------------------ */
+/* Puedes pegar la URL en el cuadro lateral y hacer click en "Guardar" */
+let API_URL = "https://script.google.com/macros/s/AKfycbxR8Dvyb-Bcg0MvKve7M-BH4HuBLFLeFvgOdegevieAs3zf-7c-nMeRqt7QDqGbiM3Syg/exec"; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/* -------------------------------------------------------------------------- */
+
+const $ = id => document.getElementById(id);
+
+let MENU = [];   // lista de productos
+let REPORT = {}; // reporte cargado
+
+/* Utilidades */
+function toast(msg, t=3000){ const el=$('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none', t); }
+function formatMoney(n){ return 'S/. ' + Number(n||0).toFixed(2); }
+
+/* Cargar menu desde API */
+async function loadMenu(){
+  if(!API_URL || API_URL.includes('REEMPLAZA')) { // no configurada
+    $('#grid').innerHTML = '<div style="padding:16px;color:var(--muted)">Pega tu API URL y presiona Guardar</div>';
+    return;
+  }
+  try{
+    const res = await fetch(API_URL + '?action=menu');
+    MENU = await res.json();
+    renderMenu(MENU);
+    populateQuickSelect(MENU);
+    populateCategories(MENU);
+  }catch(err){
+    console.error(err);
+    $('#grid').innerHTML = '<div style="padding:16px;color:var(--muted)">Error cargando menú. Revisa API URL.</div>';
+  }
+}
+
+/* Render tarjetas */
+function renderMenu(list){
+  const q = $('#search').value.toLowerCase();
+  const cat = $('#filtrocategoria').value;
+  const sorted = [...list].filter(it=>{
+    if(cat && it.categoria !== cat) return false;
+    if(q && !(String(it.nombre).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const order = $('#metrica').value;
+  if(order === 'precio') sorted.sort((a,b)=>b.precio - a.precio);
+  // ventas (si hay report)
+  if(order === 'ventas' && REPORT && REPORT.items){
+    const byName = {};
+    REPORT.items.forEach(it=> byName[it.nombre] = it.total || 0);
+    sorted.sort((a,b)=> (byName[b.nombre]||0) - (byName[a.nombre]||0));
+  }
+
+  const html = sorted.map(it=>{
+    return `<div class="card" data-id="${it.id}">
+      <div class="left">
+        <div class="thumb">${(it.nombre||'')[0]||'?'}</div>
+        <div class="meta">
+          <div class="name">${it.nombre}</div>
+          <div class="small">${it.categoria || ''}</div>
+          <div class="price">${formatMoney(it.precio)}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <input class="qty" type="number" min="1" value="1" id="qty_${it.id}" />
+        <div style="display:flex;gap:6px">
+          <button class="btn rapid" onclick="sellQuick('${it.id}')">Vender</button>
+          <button class="btn secondary" onclick="openEdit(${it.id})">Editar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  $('#grid').innerHTML = html || '<div style="padding:16px;color:var(--muted)">No hay productos.</div>';
+}
+
+/* Populate quick select and categories */
+function populateQuickSelect(list){
+  const sel = $('#quickSelect'); sel.innerHTML = '';
+  list.forEach(it => sel.appendChild(new Option(`${it.nombre} — ${formatMoney(it.precio)}`, it.id)));
+}
+function populateCategories(list){
+  const cats = [...new Set(list.map(i=>i.categoria).filter(Boolean))];
+  const sel = $('#filtrocategoria'); sel.innerHTML = '<option value="">Todas las categorías</option>';
+  cats.forEach(c=> sel.appendChild(new Option(c,c)));
+}
+
+/* Sell from card */
+async function sellQuick(id){
+  const item = MENU.find(m=>String(m.id)===String(id));
+  if(!item) return toast('Producto no encontrado');
+  const qty = Number(document.querySelector(`#qty_${id}`).value || 1);
+  await doSale(item, qty);
+}
+
+/* Sell from quick panel */
+document.getElementById('quickSell').addEventListener('click', async ()=>{
+  const id = $('#quickSelect').value;
+  const item = MENU.find(m=>String(m.id)===String(id));
+  if(!item) return toast('Selecciona un producto');
+  const qty = Number($('#quickQty').value || 1);
+  await doSale(item, qty, $('#quickPago').value);
+});
+
+/* Acción central que hace POST a la API */
+async function doSale(item, qty=1, pago='efectivo'){
+  if(!API_URL || API_URL.includes('REEMPLAZA')) return toast('Configura la API URL en la derecha');
+  if(qty <= 0) return toast('Cantidad inválida');
+  const total = Number(item.precio) * Number(qty);
+  const payload = {
+    action: 'registrar_venta',
+    producto_id: item.id,
+    producto_nombre: item.nombre,
+    cantidad: qty,
+    precio_unitario: item.precio,
+    total: total,
+    pago: pago || 'efectivo',
+    nota: '',
+    cajero: $('#cajero').value || ''
+  };
+
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const r = await res.json();
+    if(r.ok){
+      toast('Venta registrada: ' + formatMoney(total));
+      await updateReport(); // actualizar reporte en la UI
+    }else{
+      toast('Error en el registro: ' + (r.error || JSON.stringify(r)));
+    }
+  }catch(err){
+    console.error(err);
+    toast('Error en la comunicación con la API');
+  }
+}
+
+/* Reporte */
+async function updateReport(){
+  if(!API_URL || API_URL.includes('REEMPLAZA')) return;
+  const dias = $('#selectDias').value || 7;
+  try{
+    const res = await fetch(API_URL + '?action=reporte&dias=' + dias);
+    const data = await res.json();
+    REPORT = data;
+    $('#diasLabel').textContent = dias + ' días';
+    $('#ingresos').textContent = formatMoney(data.ingresos_totales || 0);
+    const totalItems = (data.items || []).reduce((s,it)=> s + (it.cantidad||0), 0);
+    $('#articulos').textContent = totalItems;
+    $('#top1').textContent = (data.items && data.items[0]) ? data.items[0].nombre : '—';
+
+    // tabla
+    const rows = (data.items || []).map(it=>{
+      return `<tr><td>${it.nombre}</td><td>${it.cantidad}</td><td>${formatMoney(it.total)}</td></tr>`;
+    }).join('');
+    $('#reportTable').innerHTML = `<table><thead><tr><th>Producto</th><th>Cantidad</th><th>Ingresos</th></tr></thead><tbody>${rows}</tbody></table>`;
+    // reordenar menu si se pidió ordenar por ventas
+    renderMenu(MENU);
+  }catch(err){
+    console.error(err);
+    toast('No se pudo cargar reporte');
+  }
+}
+
+/* Botones UI */
+$('#btnRefrescar').addEventListener('click', ()=>{ loadMenu(); updateReport(); toast('Actualizando...') });
+$('#selectDias').addEventListener('change', updateReport);
+$('#search').addEventListener('input', ()=> renderMenu(MENU));
+$('#metrica').addEventListener('change', ()=> renderMenu(MENU));
+$('#filtrocategoria').addEventListener('change', ()=> renderMenu(MENU));
+
+/* Guardar API URL en localStorage */
+$('#guardarApi').addEventListener('click', ()=>{
+  const v = $('#apiUrl').value.trim();
+  if(!v) return toast('Pega la URL de la API');
+  API_URL = v;
+  localStorage.setItem('api_url_restaurante', v);
+  toast('API guardada');
+  loadMenu();
+  updateReport();
+});
+$('#probarApi').addEventListener('click', async ()=>{
+  if(!$('#apiUrl').value.trim()) return toast('Pega la URL de la API');
+  API_URL = $('#apiUrl').value.trim();
+  try{
+    const r = await fetch(API_URL + '?action=menu');
+    if(r.ok) {
+      toast('API responde correctamente');
+    } else {
+      toast('Respuesta inesperada de la API');
+    }
+  }catch(err){ toast('Error contactando la API'); }
+});
+
+/* Abrir hoja en Google Sheets (abre la hoja activa) */
+$('#btnExport').addEventListener('click', ()=>{
+  // abre el sheet en una nueva ventana (tú tienes link)
+  const url = window.prompt('Pega aquí la URL de tu Google Sheet si quieres abrirla (opcional):') || '';
+  if(url) window.open(url,'_blank');
+});
+
+/* Borra ventas (solo UI: un botón peligroso: borra TODAS las filas en Ventas) */
+$('#btnClear').addEventListener('click', async ()=>{
+  if(!confirm('¿Borrar TODAS las ventas? Esta acción elimina TODO el historial de ventas.')) return;
+  // Llamar una ruta admin? Si no tienes, muestra instrucción
+  toast('Función de borrado no implementada en API. Para borrar manualmente, entra a Google Sheets.');
+});
+
+/* Helpers extras */
+function openEdit(id){ toast('Editar producto: función adicional (más adelante)'); }
+
+/* Cargar configuración local */
+(function init(){
+  const saved = localStorage.getItem('api_url_restaurante');
+  if(saved) { API_URL = saved; $('#apiUrl').value = saved; }
+  loadMenu();
+  updateReport();
+})();
+</script>
 </body>
 </html>
