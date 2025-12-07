@@ -4,225 +4,263 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>POS Restaurante Familiar</title>
-
 <style>
-body{margin:0;background:#f1f5f9;font-family:Arial}
-.container{max-width:1100px;margin:auto;padding:20px}
-h1{margin:0;font-size:22px}
-.sub{color:#555;margin-bottom:10px}
-.panel,.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 6px #0001}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.card{border:1px solid #eee;border-radius:10px;padding:12px;display:flex;justify-content:space-between}
-.card .meta{font-size:14px}
-.card .price{font-weight:bold;color:#1971c2}
-.btn{background:#1971c2;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
-.btn.sec{background:#ccc;color:#000}
-input,select{padding:6px;border-radius:6px;border:1px solid #ccc}
-.toast{position:fixed;bottom:20px;right:20px;background:#000;color:#fff;padding:10px;border-radius:8px;display:none}
+  body{margin:0;background:#f1f5f9;font-family:Arial}
+  .container{max-width:1100px;margin:auto;padding:20px}
+  h1{margin:0;font-size:22px}
+  .sub{color:#555;margin-bottom:10px}
+  .panel,.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 6px #0001}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .card{border:1px solid #eee;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center}
+  .card .meta{font-size:14px}
+  .card .price{font-weight:bold;color:#1971c2}
+  .btn{background:#1971c2;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .btn.sec{background:#ccc;color:#000}
+  input,select{padding:6px;border-radius:6px;border:1px solid #ccc}
+  .toast{position:fixed;bottom:20px;right:20px;background:#000;color:#fff;padding:10px;border-radius:8px;display:none;z-index:999}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
 </style>
 </head>
-
 <body>
 <div class="container">
-    <h1>🍽 POS - Restaurante Familiar</h1>
-    <div class="sub">Registrar ventas rápido</div>
+  <h1>🍽 POS - Restaurante Familiar</h1>
+  <div class="sub">Registrar ventas rápido — versión estable</div>
 
-    <!-- FILTROS -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <input id="search" placeholder="Buscar producto..." />
-        <select id="filtrocategoria"><option value="">Todas las categorías</option></select>
-        <select id="metrica">
-            <option value="precio">Ordenar por precio</option>
-            <option value="ventas">Mas vendidos</option>
-        </select>
-        <button id="btnRefrescar" class="btn sec">Actualizar</button>
+  <!-- FILTROS -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input id="search" placeholder="Buscar producto..." />
+    <select id="filtrocategoria"><option value="">Todas las categorías</option></select>
+    <select id="metrica">
+      <option value="precio">Ordenar por precio</option>
+      <option value="ventas">Mas vendidos</option>
+    </select>
+    <button id="btnRefrescar" class="btn sec">Actualizar</button>
+  </div>
+
+  <!-- PRODUCTOS -->
+  <div id="grid" class="grid"></div>
+
+  <!-- REGISTRO RAPIDO -->
+  <div class="panel" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <div>
+      <h3 style="margin:0 0 6px">Registro rápido</h3>
+      <div class="sub" style="margin-bottom:6px">Vender un producto con botones rápidos:</div>
+      <select id="quickSelect"></select>
+      <input id="quickQty" type="number" value="1" min="1" style="width:70px;margin-left:6px" />
+      <select id="quickPago" style="margin-left:6px">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+      </select>
+      <button id="quickSell" class="btn" style="margin-left:6px">Vender</button>
     </div>
+  </div>
 
-    <!-- PRODUCTOS -->
-    <div id="grid" class="grid"></div>
+  <!-- REPORTES -->
+  <div class="panel">
+    <h3 style="margin:0 0 6px">Reporte</h3>
+    <select id="selectDias" style="margin-bottom:8px">
+      <option value="7">Últimos 7 días</option>
+      <option value="30">Últimos 30</option>
+    </select>
+    <div id="reportInfo" style="margin-top:6px;font-size:14px"></div>
+    <div id="reportTable" style="margin-top:8px"></div>
+  </div>
 
-    <!-- REGISTRO RAPIDO -->
-    <div class="panel">
-        <h3>Registro rápido</h3>
-        <select id="quickSelect"></select>
-        <input id="quickQty" type="number" value="1" min="1" style="width:70px" />
-        <select id="quickPago">
-            <option value="efectivo">Efectivo</option>
-            <option value="tarjeta">Tarjeta</option>
-        </select>
-        <button id="quickSell" class="btn">Vender</button>
-    </div>
-
-    <!-- REPORTES -->
-    <div class="panel">
-        <h3>Reporte</h3>
-        <select id="selectDias">
-            <option value="7">Últimos 7 días</option>
-            <option value="30">Últimos 30</option>
-        </select>
-        <div id="reportInfo" style="margin-top:10px;font-size:14px"></div>
-        <div id="reportTable"></div>
-    </div>
-
-    <!-- CONFIG -->
-    <div class="panel">
-        <h3>Configuración API</h3>
-        <input id="apiUrl" placeholder="Pega tu API URL" style="width:80%" />
-        <button id="guardarApi" class="btn">Guardar</button>
-        <button id="probarApi" class="btn sec">Probar</button>
-    </div>
+  <!-- CONFIG -->
+  <div class="panel">
+    <h3 style="margin:0 0 6px">Configuración API</h3>
+    <input id="apiUrl" placeholder="Pega tu API URL" style="width:80%" />
+    <button id="guardarApi" class="btn">Guardar</button>
+    <button id="probarApi" class="btn sec">Probar</button>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-/* ====================================================================== */
-/* TU API URL (pegada automáticamente) */
+/* ------------------- API (ya pusimos tu URL aquí) ------------------- */
 let API_URL = "https://script.google.com/macros/s/AKfycbxR8Dvyb-Bcg0MvKve7M-BH4HuBLFLeFvgOdegevieAs3zf-7c-nMeRqt7QDqGbiM3Syg/exec";
-/* ====================================================================== */
+/* ------------------------------------------------------------------- */
 
 const $ = id => document.getElementById(id);
-let MENU=[], REPORT={};
+let MENU = [], REPORT = {};
 
 function toast(msg){
-  const t=$("toast");
-  t.textContent=msg;
-  t.style.display="block";
-  setTimeout(()=>t.style.display="none",3000);
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(()=> t.style.display = "none", 3000);
 }
 
-/* ================== CARGAR MENU ================== */
+/* ---------- helpers para evitar addEventListener sobre null ---------- */
+function safeAdd(id, evt, fn){
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(evt, fn);
+  else console.warn('Elemento no encontrado (safeAdd):', id);
+}
+
+/* ================== CARGAR MENU DESDE API ================== */
 async function loadMenu(){
-  if(!API_URL) return;
+  if(!API_URL) { console.warn('API_URL no configurada'); return; }
   try{
-    const r = await fetch(API_URL + "?action=menu");
-    MENU = await r.json();
+    const res = await fetch(API_URL + "?action=menu");
+    MENU = await res.json();
     renderMenu();
     loadQuick();
     loadCats();
-  }catch(e){ console.error(e); toast("Error cargando menú"); }
+  } catch(err){
+    console.error('Error loadMenu:', err);
+    toast('Error cargando menú (ver consola)');
+  }
 }
 
-/* ================== RENDER MENU ================== */
+/* ================== RENDER TARJETAS ================== */
 function renderMenu(){
-  const q = $("search").value.toLowerCase();
-  const cat = $("filtrocategoria").value;
+  const q = ($('search') && $('search').value || '').toLowerCase();
+  const cat = $('filtrocategoria') ? $('filtrocategoria').value : '';
   const m = MENU.filter(i=>{
-    if(cat && i.categoria!==cat) return false;
-    if(q && !i.nombre.toLowerCase().includes(q)) return false;
+    if(cat && i.categoria !== cat) return false;
+    if(q && !String(i.nombre).toLowerCase().includes(q)) return false;
     return true;
   });
-  $("grid").innerHTML = m.map(i=>`
-    <div class="card">
+
+  // ordenar por precio o ventas si hay reporte
+  const order = $('metrica') ? $('metrica').value : 'precio';
+  if(order === 'precio') m.sort((a,b)=>b.precio - a.precio);
+  if(order === 'ventas' && REPORT.items){
+    const byName = {}; REPORT.items.forEach(it => byName[it.nombre] = it.total || 0);
+    m.sort((a,b)=> (byName[b.nombre]||0) - (byName[a.nombre]||0) );
+  }
+
+  $('grid').innerHTML = m.map(i => `
+    <div class="card" data-id="${i.id}">
       <div>
-        <div><b>${i.nombre}</b></div>
+        <div style="font-weight:700">${i.nombre}</div>
+        <div class="sub">${i.categoria || ''}</div>
         <div class="price">S/. ${Number(i.precio).toFixed(2)}</div>
       </div>
-      <div>
-        Cant: <input id="qty_${i.id}" type="number" value="1" min="1" style="width:60px" />
-        <button class="btn" onclick="sell(${i.id})">Vender</button>
+      <div style="text-align:right">
+        <div style="margin-bottom:6px">
+          Cant: <input id="qty_${i.id}" type="number" value="1" min="1" style="width:60px" />
+        </div>
+        <div>
+          <button class="btn" onclick="sell(${i.id})">Vender</button>
+        </div>
       </div>
-    </div>`).join("");
+    </div>
+  `).join('') || '<div class="panel">No hay productos.</div>';
 }
 
-/* ================== CARGAR DESPLEGABLES ================== */
+/* ================== LLENAR SELECTS ================== */
 function loadQuick(){
-  $("quickSelect").innerHTML = MENU.map(i =>
-    `<option value="${i.id}">${i.nombre} - S/. ${Number(i.precio).toFixed(2)}</option>`
-  ).join("");
+  $('quickSelect').innerHTML = MENU.map(i => `<option value="${i.id}">${i.nombre} - S/. ${Number(i.precio).toFixed(2)}</option>`).join('');
 }
 function loadCats(){
-  const cats = [...new Set(MENU.map(i=>i.categoria))];
-  $("filtrocategoria").innerHTML = `<option value="">Todas</option>`+
-    cats.map(c=>`<option>${c}</option>`).join("");
+  const cats = [...new Set(MENU.map(i=>i.categoria).filter(Boolean))];
+  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option>${c}</option>`).join('');
 }
 
-/* ================== REGISTRAR VENTA ================== */
+/* ================== VENDER (desde tarjeta) ================== */
 async function sell(id){
-  const item = MENU.find(i=>i.id==id);
-  const qty = Number($("qty_"+id).value);
-  await sendSale(item,qty);
+  const item = MENU.find(i=>String(i.id) === String(id));
+  const qtyInput = $(`qty_${id}`);
+  const qty = qtyInput ? Number(qtyInput.value) : 1;
+  await sendSale(item, qty);
 }
-document.getElementById("quickSell").addEventListener("click", async ()=>{
-  const id = $("quickSelect").value;
-  const qty = Number($("quickQty").value);
-  const item = MENU.find(i=>i.id==id);
-  await sendSale(item, qty, $("quickPago").value);
+
+/* ================== VENDER (desde panel rápido) ================== */
+safeAdd('quickSell','click', async ()=>{
+  const id = $('quickSelect') ? $('quickSelect').value : null;
+  const qty = $('quickQty') ? Number($('quickQty').value) : 1;
+  const item = MENU.find(i=>String(i.id) === String(id));
+  await sendSale(item, qty, $('quickPago') ? $('quickPago').value : 'efectivo');
 });
 
-async function sendSale(item, qty, pago="efectivo"){
-  if(!API_URL) return toast("Configura API");
-  if(!item) return toast("Producto no encontrado");
-  const data = {
-    action:"registrar_venta",
-    producto_id:item.id,
-    producto_nombre:item.nombre,
-    cantidad:qty,
-    precio_unitario:item.precio,
+/* ================== ENVIAR VENTA A LA API ================== */
+async function sendSale(item, qty, pago = 'efectivo'){
+  if(!API_URL) return toast('API no configurada');
+  if(!item) return toast('Selecciona un producto');
+  const payload = {
+    action: 'registrar_venta',
+    producto_id: item.id,
+    producto_nombre: item.nombre,
+    cantidad: qty,
+    precio_unitario: item.precio,
     total: Number(item.precio) * Number(qty),
-    pago:pago
+    pago: pago || 'efectivo',
+    nota: '',
+    cajero: ''
   };
   try{
-    const r = await fetch(API_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(data)
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
-    const j = await r.json();
-    if(j.ok){ toast("Venta registrada"); updateReport(); }
-    else{ toast("Error venta"); console.error(j); }
-  }catch(e){ console.error(e); toast("Error API"); }
+    const j = await res.json();
+    if(j.ok){ toast('Venta registrada'); updateReport(); } 
+    else { console.error('API error:', j); toast('Error: ver consola'); }
+  }catch(err){
+    console.error('sendSale error:', err);
+    toast('Error comunicando con API');
+  }
 }
 
-/* ================== REPORTES ================== */
+/* ================== REPORTE ================== */
 async function updateReport(){
   if(!API_URL) return;
-  const dias = $("selectDias").value;
+  const dias = $('selectDias') ? $('selectDias').value : 7;
   try{
-    const r = await fetch(API_URL + "?action=reporte&dias=" + dias);
-    const data = await r.json();
-    REPORT = data;
-    const totalVend = (data.items || []).reduce((a,b)=>a + (b.cantidad||0), 0);
-    $("reportInfo").textContent =
-      "Ingresos: S/. " + (data.ingresos_totales||0).toFixed(2) + " | Productos vendidos: " + totalVend;
-    $("reportTable").innerHTML = "<ul>"+
-      (data.items || []).map(i=>`<li>${i.nombre}: ${i.cantidad} (S/. ${Number(i.total).toFixed(2)})</li>`).join("")
-      +"</ul>";
-  }catch(e){ console.error(e); toast("Error reporte"); }
+    const res = await fetch(API_URL + '?action=reporte&dias=' + dias);
+    const data = await res.json();
+    REPORT = data || { ingresos_totales:0, items:[] };
+    const totalVend = (REPORT.items || []).reduce((s,i)=> s + (i.cantidad||0), 0);
+    $('reportInfo').textContent = `Ingresos: S/. ${Number(REPORT.ingresos_totales||0).toFixed(2)} | Productos vendidos: ${totalVend}`;
+    $('reportTable').innerHTML = '<ul>' + (REPORT.items || []).map(i=>`<li>${i.nombre}: ${i.cantidad} (S/. ${Number(i.total).toFixed(2)})</li>`).join('') + '</ul>';
+    renderMenu();
+  } catch(err){
+    console.error('updateReport error:', err);
+    toast('No se pudo cargar reporte');
+  }
 }
 
-/* ================== CONFIGURACIÓN API ================== */
-document.getElementById("guardarApi").addEventListener("click",()=>{
-  const v=$("apiUrl").value.trim();
-  if(!v) return toast("Pega la URL");
-  API_URL=v;
-  localStorage.setItem("api_url_rest",v);
-  toast("Guardado");
+/* ================== EVENTOS SEGUROS (safeAdd) ================== */
+safeAdd('guardarApi','click', ()=> {
+  const v = $('apiUrl') ? $('apiUrl').value.trim() : '';
+  if (!v) return toast('Pega la URL');
+  API_URL = v;
+  localStorage.setItem('api_url_rest', v);
+  toast('API guardada');
   loadMenu();
   updateReport();
 });
 
-document.getElementById("probarApi").addEventListener("click",async()=>{
-  try{
-    const r=await fetch(API_URL+"?action=menu");
-    if(r.ok) toast("API OK"); else toast("API sin respuesta");
-  }catch(e){ console.error(e); toast("Error conexión"); }
+safeAdd('probarApi','click', async () => {
+  try {
+    const r = await fetch(API_URL + '?action=menu');
+    if (r.ok) toast('API OK'); else toast('API sin respuesta');
+  } catch (err) {
+    console.error('probarApi error:', err);
+    toast('Error conexión API');
+  }
 });
 
-/* ================== EVENTOS ================== */
-document.getElementById("search").addEventListener("input",renderMenu);
-document.getElementById("filtrocategoria").addEventListener("change",renderMenu);
-document.getElementById("btnRefrescar").addEventListener("click",()=>{loadMenu();updateReport();});
-document.getElementById("selectDias").addEventListener("change",updateReport);
+safeAdd('search','input', ()=> renderMenu());
+safeAdd('filtrocategoria','change', ()=> renderMenu());
+safeAdd('btnRefrescar','click', ()=> { loadMenu(); updateReport(); });
+safeAdd('selectDias','change', ()=> updateReport());
+safeAdd('metrica','change', ()=> renderMenu());
 
-/* ================== CARGA INICIAL ================== */
+/* ================== INICIALIZACIÓN ================== */
 (function init(){
-  const saved = localStorage.getItem("api_url_rest");
-  if(saved){ API_URL=saved; $("apiUrl").value=saved; }
+  try{
+    const saved = localStorage.getItem('api_url_rest');
+    if(saved){ API_URL = saved; if($('apiUrl')) $('apiUrl').value = saved; }
+  }catch(e){ console.warn('No localStorage'); }
+  // carga inicial
   loadMenu();
   updateReport();
 })();
 </script>
-
 </body>
 </html>
