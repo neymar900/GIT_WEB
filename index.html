@@ -32,7 +32,7 @@
     <select id="filtrocategoria"><option value="">Todas las categorías</option></select>
     <select id="metrica">
       <option value="precio">Ordenar por precio</option>
-      <option value="ventas">Mas vendidos</option>
+      <option value="ventas">Más vendidos</option>
     </select>
     <button id="btnRefrescar" class="btn sec">Actualizar</button>
   </div>
@@ -78,10 +78,10 @@
 <div id="toast" class="toast"></div>
 
 <script>
-/* ------------------- API (ya pusimos tu URL aquí) ------------------- */
-let API_URL = "https://script.google.com/macros/s/AKfycbxR8Dvyb-Bcg0MvKve7M-BH4HuBLFLeFvgOdegevieAs3zf-7c-nMeRqt7QDqGbiM3Syg/exec";
-/* ------------------------------------------------------------------- */
+// ================= API URL (se puede editar desde configuración) ================
+let API_URL = localStorage.getItem("api_url_rest") || "";
 
+// ============================================================================
 const $ = id => document.getElementById(id);
 let MENU = [], REPORT = {};
 
@@ -92,175 +92,165 @@ function toast(msg){
   setTimeout(()=> t.style.display = "none", 3000);
 }
 
-/* ---------- helpers para evitar addEventListener sobre null ---------- */
 function safeAdd(id, evt, fn){
   const el = document.getElementById(id);
   if (el) el.addEventListener(evt, fn);
-  else console.warn('Elemento no encontrado (safeAdd):', id);
 }
 
-/* ================== CARGAR MENU DESDE API ================== */
+// ===================== CARGAR MENU ======================
 async function loadMenu(){
-  if(!API_URL) { console.warn('API_URL no configurada'); return; }
+  if(!API_URL) return;
+
   try{
     const res = await fetch(API_URL + "?action=menu");
     MENU = await res.json();
     renderMenu();
     loadQuick();
     loadCats();
-  } catch(err){
-    console.error('Error loadMenu:', err);
-    toast('Error cargando menú (ver consola)');
+  }catch(err){
+    console.error(err);
+    toast("Error cargando menú");
   }
 }
 
-/* ================== RENDER TARJETAS ================== */
+// ===================== RENDER PRODUCTOS ======================
 function renderMenu(){
-  const q = ($('search') && $('search').value || '').toLowerCase();
-  const cat = $('filtrocategoria') ? $('filtrocategoria').value : '';
-  const m = MENU.filter(i=>{
+  const q = ($("search")?.value || "").toLowerCase();
+  const cat = $("filtrocategoria")?.value || "";
+
+  let m = MENU.filter(i=>{
     if(cat && i.categoria !== cat) return false;
-    if(q && !String(i.nombre).toLowerCase().includes(q)) return false;
+    if(q && !i.nombre.toLowerCase().includes(q)) return false;
     return true;
   });
 
-  // ordenar por precio o ventas si hay reporte
-  const order = $('metrica') ? $('metrica').value : 'precio';
-  if(order === 'precio') m.sort((a,b)=>b.precio - a.precio);
-  if(order === 'ventas' && REPORT.items){
-    const byName = {}; REPORT.items.forEach(it => byName[it.nombre] = it.total || 0);
-    m.sort((a,b)=> (byName[b.nombre]||0) - (byName[a.nombre]||0) );
-  }
-
-  $('grid').innerHTML = m.map(i => `
-    <div class="card" data-id="${i.id}">
+  const div = $("grid");
+  div.innerHTML = m.map(i => `
+    <div class="card">
       <div>
         <div style="font-weight:700">${i.nombre}</div>
-        <div class="sub">${i.categoria || ''}</div>
-        <div class="price">S/. ${Number(i.precio).toFixed(2)}</div>
+        <div class="sub">${i.categoria}</div>
+        <div class="price">S/. ${i.precio.toFixed(2)}</div>
       </div>
-      <div style="text-align:right">
-        <div style="margin-bottom:6px">
-          Cant: <input id="qty_${i.id}" type="number" value="1" min="1" style="width:60px" />
-        </div>
-        <div>
-          <button class="btn" onclick="sell(${i.id})">Vender</button>
-        </div>
+      <div>
+        Cant: <input id="qty_${i.id}" type="number" value="1" min="1" style="width:60px" /><br>
+        <button class="btn" onclick="sell(${i.id})">Vender</button>
       </div>
     </div>
-  `).join('') || '<div class="panel">No hay productos.</div>';
+  `).join("");
 }
 
-/* ================== LLENAR SELECTS ================== */
+// ===================== SELECT RÁPIDO =========================
 function loadQuick(){
-  $('quickSelect').innerHTML = MENU.map(i => `<option value="${i.id}">${i.nombre} - S/. ${Number(i.precio).toFixed(2)}</option>`).join('');
-}
-function loadCats(){
-  const cats = [...new Set(MENU.map(i=>i.categoria).filter(Boolean))];
-  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option>${c}</option>`).join('');
+  $("quickSelect").innerHTML =
+    MENU.map(i => `<option value="${i.id}">${i.nombre} - S/. ${i.precio.toFixed(2)}</option>`).join("");
 }
 
-/* ================== VENDER (desde tarjeta) ================== */
+function loadCats(){
+  const cats = [...new Set(MENU.map(i=>i.categoria))];
+  $("filtrocategoria").innerHTML =
+    `<option value="">Todas</option>` +
+    cats.map(c=> `<option value="${c}">${c}</option>`).join("");
+}
+
+// ======================= VENDER =============================
 async function sell(id){
-  const item = MENU.find(i=>String(i.id) === String(id));
-  const qtyInput = $(`qty_${id}`);
-  const qty = qtyInput ? Number(qtyInput.value) : 1;
+  const item = MENU.find(x => x.id == id);
+  const qty = Number($(`qty_${id}`).value);
   await sendSale(item, qty);
 }
 
-/* ================== VENDER (desde panel rápido) ================== */
-safeAdd('quickSell','click', async ()=>{
-  const id = $('quickSelect') ? $('quickSelect').value : null;
-  const qty = $('quickQty') ? Number($('quickQty').value) : 1;
-  const item = MENU.find(i=>String(i.id) === String(id));
-  await sendSale(item, qty, $('quickPago') ? $('quickPago').value : 'efectivo');
-});
+// ======================= VENTA FORM-URLENCODED =============================
+// *** ESTA ES LA FUNCIÓN QUE CORRIGE EL PROBLEMA DE CORS ***
+async function sendSale(item, qty, pago = "efectivo"){
+  if(!API_URL) return toast("API no configurada");
+  if(!item) return toast("Producto no encontrado");
 
-/* ================== ENVIAR VENTA A LA API ================== */
-async function sendSale(item, qty, pago = 'efectivo'){
-  if(!API_URL) return toast('API no configurada');
-  if(!item) return toast('Selecciona un producto');
-  const payload = {
-    action: 'registrar_venta',
-    producto_id: item.id,
-    producto_nombre: item.nombre,
-    cantidad: qty,
-    precio_unitario: item.precio,
-    total: Number(item.precio) * Number(qty),
-    pago: pago || 'efectivo',
-    nota: '',
-    cajero: ''
-  };
+  const form = new URLSearchParams();
+  form.append("action","registrar_venta");
+  form.append("producto_id", item.id);
+  form.append("producto_nombre", item.nombre);
+  form.append("cantidad", qty);
+  form.append("precio_unitario", item.precio);
+  form.append("total", item.precio * qty);
+  form.append("pago", pago);
+
   try{
     const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      method: "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body: form.toString()
     });
+
     const j = await res.json();
-    if(j.ok){ toast('Venta registrada'); updateReport(); } 
-    else { console.error('API error:', j); toast('Error: ver consola'); }
+    if(j.ok){
+      toast("Venta registrada");
+      updateReport();
+    } else {
+      console.error(j);
+      toast("Error en API");
+    }
   }catch(err){
-    console.error('sendSale error:', err);
-    toast('Error comunicando con API');
+    console.error(err);
+    toast("No se pudo enviar venta");
   }
 }
 
-/* ================== REPORTE ================== */
+// ==================== REPORTE ===========================
 async function updateReport(){
-  if(!API_URL) return;
-  const dias = $('selectDias') ? $('selectDias').value : 7;
   try{
-    const res = await fetch(API_URL + '?action=reporte&dias=' + dias);
-    const data = await res.json();
-    REPORT = data || { ingresos_totales:0, items:[] };
-    const totalVend = (REPORT.items || []).reduce((s,i)=> s + (i.cantidad||0), 0);
-    $('reportInfo').textContent = `Ingresos: S/. ${Number(REPORT.ingresos_totales||0).toFixed(2)} | Productos vendidos: ${totalVend}`;
-    $('reportTable').innerHTML = '<ul>' + (REPORT.items || []).map(i=>`<li>${i.nombre}: ${i.cantidad} (S/. ${Number(i.total).toFixed(2)})</li>`).join('') + '</ul>';
-    renderMenu();
-  } catch(err){
-    console.error('updateReport error:', err);
-    toast('No se pudo cargar reporte');
+    const dias = $("selectDias").value;
+    const res = await fetch(API_URL + "?action=reporte&dias=" + dias);
+    const rep = await res.json();
+    REPORT = rep;
+
+    $("reportInfo").textContent =
+      `Ingresos: S/. ${rep.ingresos_totales.toFixed(2)} | Productos vendidos: ${rep.items.length}`;
+
+    $("reportTable").innerHTML =
+      `<ul>${rep.items.map(i=>`<li>${i.nombre}: ${i.cantidad} (S/. ${i.total})</li>`).join("")}</ul>`;
+
+  }catch(err){
+    console.error(err);
+    toast("Error cargando reporte");
   }
 }
 
-/* ================== EVENTOS SEGUROS (safeAdd) ================== */
-safeAdd('guardarApi','click', ()=> {
-  const v = $('apiUrl') ? $('apiUrl').value.trim() : '';
-  if (!v) return toast('Pega la URL');
+// ====================== EVENTOS =============================
+safeAdd("guardarApi","click",()=>{
+  const v = $("apiUrl").value.trim();
+  if(!v) return toast("Pega tu API URL");
   API_URL = v;
-  localStorage.setItem('api_url_rest', v);
-  toast('API guardada');
+  localStorage.setItem("api_url_rest", v);
+  toast("API guardada");
   loadMenu();
   updateReport();
 });
 
-safeAdd('probarApi','click', async () => {
-  try {
-    const r = await fetch(API_URL + '?action=menu');
-    if (r.ok) toast('API OK'); else toast('API sin respuesta');
-  } catch (err) {
-    console.error('probarApi error:', err);
-    toast('Error conexión API');
+safeAdd("probarApi","click", async ()=>{
+  try{
+    const r = await fetch(API_URL + "?action=menu");
+    toast(r.ok ? "API OK" : "No responde");
+  }catch{
+    toast("Error");
   }
 });
 
-safeAdd('search','input', ()=> renderMenu());
-safeAdd('filtrocategoria','change', ()=> renderMenu());
-safeAdd('btnRefrescar','click', ()=> { loadMenu(); updateReport(); });
-safeAdd('selectDias','change', ()=> updateReport());
-safeAdd('metrica','change', ()=> renderMenu());
+safeAdd("quickSell","click", async ()=>{
+  const id = $("quickSelect").value;
+  const qty = $("quickQty").value;
+  const pago = $("quickPago").value;
+  const item = MENU.find(x=>x.id==id);
+  await sendSale(item, qty, pago);
+});
 
-/* ================== INICIALIZACIÓN ================== */
+// ================== INICIO ==========================
 (function init(){
-  try{
-    const saved = localStorage.getItem('api_url_rest');
-    if(saved){ API_URL = saved; if($('apiUrl')) $('apiUrl').value = saved; }
-  }catch(e){ console.warn('No localStorage'); }
-  // carga inicial
+  if($("apiUrl")) $("apiUrl").value = API_URL;
   loadMenu();
   updateReport();
 })();
 </script>
+
 </body>
 </html>
