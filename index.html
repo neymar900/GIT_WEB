@@ -1,56 +1,65 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POS - Restaurante Familiar</title>
 
 <style>
 :root{
   --accent:#e85a13;
-  --accent-soft:#fff2ea;
-  --muted:#6b7280;
-  --card:rgba(255,255,255,.96);
+  --accent-soft:rgba(232,90,19,.12);
+  --card:rgba(255,255,255,.90);
+  --panel:rgba(255,255,255,.85);
+  --text:#1f2937;
 }
 
-/* ===== BASE ===== */
-html,body{margin:0;height:100%}
+/* ================= BASE ================= */
+html,body{
+  margin:0;
+  min-height:100%;
+}
+
 body{
-  font-family: "Inter","Segoe UI",Arial,sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color:var(--text);
+
+  /* 🔥 FONDO REAL VISIBLE */
   background:
-    linear-gradient(rgba(255,248,240,.6), rgba(255,248,240,.6)),
+    linear-gradient(
+      rgba(0,0,0,.35),
+      rgba(0,0,0,.35)
+    ),
     url("Imagenes/fondoWEB.avif");
+
   background-size:cover;
   background-position:center;
   background-attachment:fixed;
-  color:#111;
 }
 
+/* ================= LAYOUT ================= */
 .container{
   max-width:1200px;
-  margin:26px auto;
-  padding:0 14px;
+  margin:30px auto;
+  padding:0 16px;
 }
 
-/* ===== HEADER ===== */
+/* ================= HEADER ================= */
 .header{
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  margin-bottom:16px;
+  align-items:center;
+  margin-bottom:18px;
 }
+
 .brand{
   font-size:24px;
   font-weight:800;
-  color:var(--accent);
-  display:flex;
-  gap:10px;
-  align-items:center;
+  color:#ff7a1a;
 }
 
-/* ===== BOTÓN CONFIG ===== */
 .config-btn{
-  background:#e5e7eb;
+  background:rgba(255,255,255,.85);
   border:0;
   padding:8px 14px;
   border-radius:10px;
@@ -58,29 +67,32 @@ body{
   font-weight:600;
 }
 
-/* ===== PANEL ===== */
+/* ================= PANELS ================= */
 .panel{
-  background:var(--card);
+  background:var(--panel);
+  backdrop-filter: blur(6px);
   border-radius:16px;
   padding:14px;
   margin-bottom:18px;
-  box-shadow:0 10px 26px rgba(0,0,0,.08);
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
 
-/* ===== FILTROS ===== */
+/* ================= FILTERS ================= */
 .controls{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
 }
+
 .controls input,
 .controls select{
   padding:10px;
   border-radius:10px;
   border:1px solid #e5e7eb;
 }
+
 .controls button{
-  background:#d1d5db;
+  background:#e5e7eb;
   border:0;
   padding:10px 14px;
   border-radius:10px;
@@ -88,39 +100,42 @@ body{
   font-weight:600;
 }
 
-/* ===== GRID ===== */
+/* ================= GRID ================= */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:18px;
+  gap:20px;
 }
 
-/* ===== CARD ===== */
+/* ================= CARD ================= */
 .card{
   background:var(--card);
-  border-radius:16px;
+  backdrop-filter: blur(8px);
+  border-radius:18px;
   padding:12px;
-  box-shadow:0 10px 26px rgba(0,0,0,.08);
+  box-shadow:0 15px 40px rgba(0,0,0,.35);
   display:flex;
   flex-direction:column;
   gap:10px;
   transition:.15s;
 }
+
 .card:hover{
-  transform:translateY(-6px);
+  transform:translateY(-8px);
 }
 
 .card img{
   width:100%;
   height:150px;
   object-fit:cover;
-  border-radius:12px;
+  border-radius:14px;
 }
 
 .title{
   font-weight:800;
   font-size:16px;
 }
+
 .cat{
   background:var(--accent-soft);
   color:var(--accent);
@@ -129,25 +144,28 @@ body{
   font-size:12px;
   width:max-content;
 }
+
 .price{
   font-size:18px;
   font-weight:800;
   color:var(--accent);
 }
 
-/* ===== ACCIONES ===== */
+/* ================= ACTIONS ================= */
 .actions{
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:8px;
 }
+
 .actions input{
   width:80px;
   padding:8px;
   border-radius:8px;
   border:1px solid #e5e7eb;
 }
+
 .btn{
   background:var(--accent);
   color:#fff;
@@ -158,7 +176,7 @@ body{
   font-weight:700;
 }
 
-/* ===== TOAST ===== */
+/* ================= TOAST ================= */
 .toast{
   position:fixed;
   right:20px;
@@ -198,41 +216,6 @@ body{
   <!-- PRODUCTOS -->
   <div id="grid" class="grid"></div>
 
-  <!-- REGISTRO RÁPIDO -->
-  <div class="panel">
-    <h3>Registro rápido</h3>
-    <div class="controls">
-      <select id="quickSelect"></select>
-      <input id="quickQty" type="number" value="1" min="1">
-      <select id="quickPago">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-      </select>
-      <button id="quickSell" class="btn">Vender</button>
-    </div>
-  </div>
-
-  <!-- REPORTE -->
-  <div class="panel">
-    <h3>Reporte</h3>
-    <select id="selectDias">
-      <option value="7">Últimos 7 días</option>
-      <option value="30">Últimos 30 días</option>
-    </select>
-    <div id="reportInfo" style="margin-top:10px;font-weight:800;color:var(--accent)"></div>
-    <div id="reportTable"></div>
-  </div>
-
-  <!-- CONFIG API (OCULTO) -->
-  <div id="configPanel" class="panel" style="display:none">
-    <h3>Configuración API</h3>
-    <div class="controls">
-      <input id="apiUrl" placeholder="URL de Apps Script">
-      <button id="guardarApi" class="btn">Guardar</button>
-      <button id="probarApi">Probar</button>
-    </div>
-  </div>
-
 </div>
 
 <div id="toast" class="toast"></div>
@@ -260,20 +243,12 @@ const IMAGE_MAP={
 
 const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
 
-function toast(m){
-  const t=$("toast");
-  t.textContent=m;
-  t.style.display="block";
-  setTimeout(()=>t.style.display="none",2500);
-}
-
 function imgFor(i){
   if(i.imagen) return "Imagenes/"+i.imagen;
   return "Imagenes/"+(IMAGE_MAP[norm(i.nombre)]||"fondoWEB.avif");
 }
 
 async function loadMenu(){
-  if(!API_URL) return;
   const r=await fetch(API_URL+"?action=menu");
   const d=await r.json();
   MENU=d.map(i=>({
@@ -283,90 +258,25 @@ async function loadMenu(){
     categoria:i.categoria,
     imagen:i.imagen||""
   }));
-  loadCats(); loadQuick(); render();
+  render();
 }
 
 function render(){
-  const q=$("search").value.toLowerCase();
-  const c=$("filtrocategoria").value;
-  const m=$("metrica").value;
-
-  let list=[...MENU];
-  if(q) list=list.filter(i=>i.nombre.toLowerCase().includes(q));
-  if(c) list=list.filter(i=>i.categoria===c);
-  if(m==="precio") list.sort((a,b)=>a.precio-b.precio);
-  if(m==="nombre") list.sort((a,b)=>a.nombre.localeCompare(b.nombre));
-
-  $("grid").innerHTML=list.map(i=>`
+  $("grid").innerHTML=MENU.map(i=>`
     <div class="card">
       <img src="${imgFor(i)}">
       <div class="title">${i.nombre}</div>
       <div class="cat">${i.categoria}</div>
       <div class="price">Bs ${i.precio.toFixed(2)}</div>
       <div class="actions">
-        <input type="number" value="1" min="1" id="q_${i.id}">
-        <button class="btn" onclick="sell(${i.id})">Vender</button>
+        <input type="number" value="1">
+        <button class="btn">Vender</button>
       </div>
     </div>
   `).join("");
 }
 
-function loadCats(){
-  const c=[...new Set(MENU.map(i=>i.categoria))];
-  $("filtrocategoria").innerHTML='<option value="">Todas</option>'+c.map(x=>`<option>${x}</option>`).join("");
-}
-function loadQuick(){
-  $("quickSelect").innerHTML=MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join("");
-}
-
-async function sell(id){
-  const i=MENU.find(x=>x.id==id);
-  const q=$("q_"+id).value;
-  await sendSale(i,q);
-}
-
-async function sendSale(i,q,p="efectivo"){
-  const f=new URLSearchParams();
-  f.append("action","registrar_venta");
-  f.append("producto_id",i.id);
-  f.append("producto_nombre",i.nombre);
-  f.append("cantidad",q);
-  f.append("precio_unitario",i.precio);
-  f.append("total",i.precio*q);
-  f.append("pago",p);
-
-  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:f});
-  await r.json();
-  toast("Venta registrada");
-  updateReport();
-}
-
-async function updateReport(){
-  const d=$("selectDias").value;
-  const r=await fetch(API_URL+`?action=reporte&dias=${d}`);
-  const j=await r.json();
-  $("reportInfo").textContent=`Ingresos: Bs ${j.ingresos_totales}`;
-  $("reportTable").innerHTML="<ul>"+j.items.map(x=>`<li>${x.nombre}: ${x.cantidad}</li>`).join("")+"</ul>";
-}
-
-$("btnConfig").onclick=()=>$("configPanel").style.display=$("configPanel").style.display==="none"?"block":"none";
-$("guardarApi").onclick=()=>{
-  API_URL=$("apiUrl").value;
-  localStorage.setItem("api_url_rest",API_URL);
-  loadMenu();
-};
-$("probarApi").onclick=()=>fetch(API_URL+"?action=menu").then(()=>toast("API OK"));
-$("search").oninput=render;
-$("filtrocategoria").onchange=render;
-$("metrica").onchange=render;
-$("btnRefrescar").onclick=render;
-$("quickSell").onclick=()=>sendSale(MENU.find(i=>i.id==$("quickSelect").value),$("quickQty").value,$("quickPago").value);
-$("selectDias").onchange=updateReport;
-
-(function init(){
-  $("apiUrl").value=API_URL;
-  if(API_URL) loadMenu();
-})();
+if(API_URL) loadMenu();
 </script>
 </body>
 </html>
