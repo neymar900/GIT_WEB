@@ -4,253 +4,182 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>POS Restaurante Familiar</title>
+
 <style>
-  body{margin:0;background:#f1f5f9;font-family:Arial}
-  .container{max-width:1100px;margin:auto;padding:20px}
-  h1{margin:0;font-size:22px}
-  .sub{color:#555;margin-bottom:10px}
-  .panel,.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 6px #0001}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-  .card{border:1px solid #eee;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center}
-  .card .meta{font-size:14px}
-  .card .price{font-weight:bold;color:#1971c2}
-  .btn{background:#1971c2;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
-  .btn.sec{background:#ccc;color:#000}
-  input,select{padding:6px;border-radius:6px;border:1px solid #ccc}
-  .toast{position:fixed;bottom:20px;right:20px;background:#000;color:#fff;padding:10px;border-radius:8px;display:none;z-index:999}
-  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+body{margin:0;background:#f1f5f9;font-family:Arial}
+.container{max-width:1100px;margin:auto;padding:20px}
+h1{margin:0;font-size:22px}
+.sub{color:#555;margin-bottom:10px}
+.panel,.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 6px #0001}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{border:1px solid #eee;border-radius:10px;padding:12px;display:flex;justify-content:space-between}
+.price{font-weight:bold;color:#1971c2}
+.btn{background:#1971c2;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.btn.sec{background:#ccc;color:#000}
+input,select{padding:6px;border-radius:6px;border:1px solid #ccc}
+.toast{position:fixed;bottom:20px;right:20px;background:#000;color:#fff;padding:10px;border-radius:8px;display:none}
 </style>
 </head>
+
 <body>
 <div class="container">
-  <h1>🍽 POS - Restaurante Familiar</h1>
-  <div class="sub">Registrar ventas rápido — versión estable</div>
+<h1>🍽 POS - Restaurante Familiar</h1>
+<div class="sub">Registrar ventas rápido — versión estable</div>
 
-  <!-- FILTROS -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-    <input id="search" placeholder="Buscar producto..." />
-    <select id="filtrocategoria"><option value="">Todas las categorías</option></select>
-    <select id="metrica">
-      <option value="precio">Ordenar por precio</option>
-      <option value="ventas">Más vendidos</option>
-    </select>
-    <button id="btnRefrescar" class="btn sec">Actualizar</button>
-  </div>
+<!-- FILTROS -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+  <input id="search" placeholder="Buscar producto..." />
+  <select id="filtrocategoria">
+    <option value="">Todas las categorías</option>
+  </select>
+  <select id="metrica">
+    <option value="precio">Ordenar por precio</option>
+    <option value="nombre">Ordenar por nombre</option>
+  </select>
+  <button id="btnRefrescar" class="btn sec">Actualizar</button>
+</div>
 
-  <!-- PRODUCTOS -->
-  <div id="grid" class="grid"></div>
+<div id="grid" class="grid"></div>
 
-  <!-- REGISTRO RAPIDO -->
-  <div class="panel" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <div>
-      <h3 style="margin:0 0 6px">Registro rápido</h3>
-      <div class="sub" style="margin-bottom:6px">Vender un producto con botones rápidos:</div>
-      <select id="quickSelect"></select>
-      <input id="quickQty" type="number" value="1" min="1" style="width:70px;margin-left:6px" />
-      <select id="quickPago" style="margin-left:6px">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-      </select>
-      <button id="quickSell" class="btn" style="margin-left:6px">Vender</button>
-    </div>
-  </div>
+<!-- REGISTRO RAPIDO -->
+<div class="panel">
+  <h3>Registro rápido</h3>
+  <select id="quickSelect"></select>
+  <input id="quickQty" type="number" value="1" min="1" style="width:60px" />
+  <select id="quickPago">
+    <option value="efectivo">Efectivo</option>
+    <option value="tarjeta">Tarjeta</option>
+  </select>
+  <button id="quickSell" class="btn">Vender</button>
+</div>
 
-  <!-- REPORTES -->
-  <div class="panel">
-    <h3 style="margin:0 0 6px">Reporte</h3>
-    <select id="selectDias" style="margin-bottom:8px">
-      <option value="7">Últimos 7 días</option>
-      <option value="30">Últimos 30</option>
-    </select>
-    <div id="reportInfo" style="margin-top:6px;font-size:14px"></div>
-    <div id="reportTable" style="margin-top:8px"></div>
-  </div>
+<!-- REPORTE -->
+<div class="panel">
+  <h3>Reporte</h3>
+  <select id="selectDias">
+    <option value="7">Últimos 7 días</option>
+    <option value="30">Últimos 30 días</option>
+  </select>
+  <div id="reportInfo"></div>
+  <div id="reportTable"></div>
+</div>
 
-  <!-- CONFIG -->
-  <div class="panel">
-    <h3 style="margin:0 0 6px">Configuración API</h3>
-    <input id="apiUrl" placeholder="Pega tu API URL" style="width:80%" />
-    <button id="guardarApi" class="btn">Guardar</button>
-    <button id="probarApi" class="btn sec">Probar</button>
-  </div>
+<!-- CONFIG -->
+<div class="panel">
+  <h3>Configuración API</h3>
+  <input id="apiUrl" style="width:80%" />
+  <button id="guardarApi" class="btn">Guardar</button>
+  <button id="probarApi" class="btn sec">Probar</button>
+</div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-// ================= API URL (se puede editar desde configuración) ================
-let API_URL = localStorage.getItem("api_url_rest") || "";
-
-// ============================================================================
 const $ = id => document.getElementById(id);
-let MENU = [], REPORT = {};
+let API_URL = localStorage.getItem("api_url_rest") || "";
+let MENU = [];
 
-function toast(msg){
-  const t = $("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  setTimeout(()=> t.style.display = "none", 3000);
+function toast(m){
+  $("toast").textContent=m;
+  $("toast").style.display="block";
+  setTimeout(()=>$("toast").style.display="none",3000);
 }
 
-function safeAdd(id, evt, fn){
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(evt, fn);
-}
-
-// ===================== CARGAR MENU ======================
+// ================== MENU ==================
 async function loadMenu(){
-  if(!API_URL) return;
-
-  try{
-    const res = await fetch(API_URL + "?action=menu");
-    MENU = await res.json();
-    renderMenu();
-    loadQuick();
-    loadCats();
-  }catch(err){
-    console.error(err);
-    toast("Error cargando menú");
-  }
+  const r = await fetch(API_URL+"?action=menu");
+  MENU = await r.json();
+  loadCats();
+  loadQuick();
+  renderMenu();
 }
 
-// ===================== RENDER PRODUCTOS ======================
+// ================== RENDER ==================
 function renderMenu(){
-  const q = ($("search")?.value || "").toLowerCase();
-  const cat = $("filtrocategoria")?.value || "";
+  let list=[...MENU];
+  const q=$("search").value.toLowerCase();
+  const cat=$("filtrocategoria").value;
+  const met=$("metrica").value;
 
-  let m = MENU.filter(i=>{
-    if(cat && i.categoria !== cat) return false;
-    if(q && !i.nombre.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  if(q) list=list.filter(i=>i.nombre.toLowerCase().includes(q));
+  if(cat) list=list.filter(i=>i.categoria===cat);
 
-  const div = $("grid");
-  div.innerHTML = m.map(i => `
-    <div class="card">
-      <div>
-        <div style="font-weight:700">${i.nombre}</div>
-        <div class="sub">${i.categoria}</div>
-        <div class="price">S/. ${i.precio.toFixed(2)}</div>
-      </div>
-      <div>
-        Cant: <input id="qty_${i.id}" type="number" value="1" min="1" style="width:60px" /><br>
-        <button class="btn" onclick="sell(${i.id})">Vender</button>
-      </div>
+  if(met==="precio") list.sort((a,b)=>a.precio-b.precio);
+  if(met==="nombre") list.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+
+  $("grid").innerHTML=list.map(i=>`
+  <div class="card">
+    <div>
+      <b>${i.nombre}</b><br>
+      <span class="sub">${i.categoria}</span><br>
+      <span class="price">S/. ${i.precio.toFixed(2)}</span>
     </div>
-  `).join("");
+    <div>
+      <input id="q_${i.id}" type="number" value="1" min="1" style="width:60px"><br>
+      <button class="btn" onclick="sell(${i.id})">Vender</button>
+    </div>
+  </div>`).join("");
 }
 
-// ===================== SELECT RÁPIDO =========================
-function loadQuick(){
-  $("quickSelect").innerHTML =
-    MENU.map(i => `<option value="${i.id}">${i.nombre} - S/. ${i.precio.toFixed(2)}</option>`).join("");
-}
-
+// ================== AUX ==================
 function loadCats(){
-  const cats = [...new Set(MENU.map(i=>i.categoria))];
-  $("filtrocategoria").innerHTML =
-    `<option value="">Todas</option>` +
-    cats.map(c=> `<option value="${c}">${c}</option>`).join("");
+  const cats=[...new Set(MENU.map(i=>i.categoria))];
+  $("filtrocategoria").innerHTML='<option value="">Todas</option>'+
+    cats.map(c=>`<option>${c}</option>`).join("");
+}
+function loadQuick(){
+  $("quickSelect").innerHTML=MENU.map(i=>
+    `<option value="${i.id}">${i.nombre} - S/. ${i.precio}</option>`).join("");
 }
 
-// ======================= VENDER =============================
+// ================== VENTAS ==================
 async function sell(id){
-  const item = MENU.find(x => x.id == id);
-  const qty = Number($(`qty_${id}`).value);
-  await sendSale(item, qty);
+  const i=MENU.find(x=>x.id==id);
+  const q=$("q_"+id).value;
+  await sendSale(i,q);
 }
+async function sendSale(i,q,p="efectivo"){
+  const f=new URLSearchParams();
+  f.append("action","registrar_venta");
+  f.append("producto_id",i.id);
+  f.append("producto_nombre",i.nombre);
+  f.append("cantidad",q);
+  f.append("precio_unitario",i.precio);
+  f.append("total",i.precio*q);
+  f.append("pago",p);
 
-// ======================= VENTA FORM-URLENCODED =============================
-// *** ESTA ES LA FUNCIÓN QUE CORRIGE EL PROBLEMA DE CORS ***
-async function sendSale(item, qty, pago = "efectivo"){
-  if(!API_URL) return toast("API no configurada");
-  if(!item) return toast("Producto no encontrado");
-
-  const form = new URLSearchParams();
-  form.append("action","registrar_venta");
-  form.append("producto_id", item.id);
-  form.append("producto_nombre", item.nombre);
-  form.append("cantidad", qty);
-  form.append("precio_unitario", item.precio);
-  form.append("total", item.precio * qty);
-  form.append("pago", pago);
-
-  try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: form.toString()
-    });
-
-    const j = await res.json();
-    if(j.ok){
-      toast("Venta registrada");
-      updateReport();
-    } else {
-      console.error(j);
-      toast("Error en API");
-    }
-  }catch(err){
-    console.error(err);
-    toast("No se pudo enviar venta");
-  }
-}
-
-// ==================== REPORTE ===========================
-async function updateReport(){
-  try{
-    const dias = $("selectDias").value;
-    const res = await fetch(API_URL + "?action=reporte&dias=" + dias);
-    const rep = await res.json();
-    REPORT = rep;
-
-    $("reportInfo").textContent =
-      `Ingresos: S/. ${rep.ingresos_totales.toFixed(2)} | Productos vendidos: ${rep.items.length}`;
-
-    $("reportTable").innerHTML =
-      `<ul>${rep.items.map(i=>`<li>${i.nombre}: ${i.cantidad} (S/. ${i.total})</li>`).join("")}</ul>`;
-
-  }catch(err){
-    console.error(err);
-    toast("Error cargando reporte");
-  }
-}
-
-// ====================== EVENTOS =============================
-safeAdd("guardarApi","click",()=>{
-  const v = $("apiUrl").value.trim();
-  if(!v) return toast("Pega tu API URL");
-  API_URL = v;
-  localStorage.setItem("api_url_rest", v);
-  toast("API guardada");
-  loadMenu();
+  await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:f});
+  toast("Venta registrada");
   updateReport();
-});
+}
 
-safeAdd("probarApi","click", async ()=>{
-  try{
-    const r = await fetch(API_URL + "?action=menu");
-    toast(r.ok ? "API OK" : "No responde");
-  }catch{
-    toast("Error");
-  }
-});
+// ================== REPORTE ==================
+async function updateReport(){
+  const d=$("selectDias").value;
+  const r=await fetch(API_URL+`?action=reporte&dias=${d}`);
+  const j=await r.json();
+  $("reportInfo").innerText=`Ingresos: S/. ${j.ingresos_totales}`;
+  $("reportTable").innerHTML="<ul>"+j.items.map(i=>`<li>${i.nombre}: ${i.cantidad}</li>`).join("")+"</ul>";
+}
 
-safeAdd("quickSell","click", async ()=>{
-  const id = $("quickSelect").value;
-  const qty = $("quickQty").value;
-  const pago = $("quickPago").value;
-  const item = MENU.find(x=>x.id==id);
-  await sendSale(item, qty, pago);
+// ================== EVENTOS ==================
+["search","filtrocategoria","metrica"].forEach(id=>{
+  $(id).addEventListener("input",renderMenu);
 });
+$("btnRefrescar").onclick=renderMenu;
+$("guardarApi").onclick=()=>{
+  API_URL=$("apiUrl").value;
+  localStorage.setItem("api_url_rest",API_URL);
+  loadMenu();updateReport();
+};
+$("probarApi").onclick=()=>fetch(API_URL+"?action=menu").then(()=>toast("API OK"));
 
-// ================== INICIO ==========================
 (function init(){
-  if($("apiUrl")) $("apiUrl").value = API_URL;
+  $("apiUrl").value=API_URL;
   loadMenu();
   updateReport();
 })();
 </script>
-
 </body>
 </html>
