@@ -111,12 +111,12 @@ body{
   <div class="header">
     <div class="brand">🍽 POS – Restaurante Familiar</div>
     <div style="flex:1"></div>
-    <div class="sub">Sistema de ventas rápido y simple</div>
+    <!-- nota: subtítulo eliminado por solicitud -->
   </div>
 
   <!-- BOTÓN CONFIG (visible) -->
   <div class="config-row">
-    <button id="btnConfig" class="btn sec">⚙ Configuración</button>
+    <button id="btnConfig" class="btn sec" aria-expanded="false">⚙ Configuración</button>
   </div>
 
   <!-- filtros -->
@@ -162,7 +162,7 @@ body{
   </div>
 
   <!-- CONFIG API OCULTO (inicio oculto) -->
-  <div id="configPanel" class="panel-large" style="display:none">
+  <div id="configPanel" class="panel-large" style="display:none" aria-hidden="true">
     <h3 style="margin-top:0">Configuración API</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <input id="apiUrl" placeholder="Pega tu URL de Apps Script" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
@@ -380,7 +380,10 @@ const btnConfig = $('btnConfig');
 const configPanel = $('configPanel');
 btnConfig?.addEventListener('click', ()=>{
   if(!configPanel) return;
-  configPanel.style.display = configPanel.style.display === 'block' ? 'none' : 'block';
+  const isShown = configPanel.style.display === 'block';
+  configPanel.style.display = isShown ? 'none' : 'block';
+  btnConfig.setAttribute('aria-expanded', (!isShown).toString());
+  configPanel.setAttribute('aria-hidden', isShown.toString());
 });
 
 /* init */
