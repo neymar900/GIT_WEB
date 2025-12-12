@@ -1,282 +1,361 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>POS - Restaurante Familiar</title>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>POS – Restaurante Familiar</title>
 <style>
 :root{
   --accent:#e85a13;
-  --accent-soft:rgba(232,90,19,.12);
-  --card:rgba(255,255,255,.90);
-  --panel:rgba(255,255,255,.85);
-  --text:#1f2937;
+  --muted:#6b7280;
+  --card:#fff;
 }
 
-/* ================= BASE ================= */
-html,body{
-  margin:0;
-  min-height:100%;
-}
-
+/* base */
+html,body{height:100%;margin:0}
 body{
-  font-family: "Segoe UI", Arial, sans-serif;
-  color:var(--text);
-
-  /* 🔥 FONDO REAL VISIBLE */
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   background:
-    linear-gradient(
-      rgba(0,0,0,.35),
-      rgba(0,0,0,.35)
-    ),
+    linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)),
     url("Imagenes/fondoWEB.avif");
-
   background-size:cover;
   background-position:center;
-  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  color:#111;
 }
+.container{max-width:1180px;margin:28px auto;padding:0 14px}
 
-/* ================= LAYOUT ================= */
-.container{
-  max-width:1200px;
-  margin:30px auto;
-  padding:0 16px;
-}
+/* header */
+.header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.brand{color:var(--accent);font-weight:800;font-size:22px}
+.config-btn{margin-left:auto;background:#e7eef3;color:#333;border-radius:10px;padding:8px 12px;cursor:pointer; border:0}
 
-/* ================= HEADER ================= */
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
+/* panels & controls */
+.panel{background:rgba(255,255,255,0.96);padding:12px;border-radius:12px;margin-bottom:16px;box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select{padding:9px;border-radius:8px;border:1px solid #e6e9ee}
+button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+.btn.sec{background:#cfd6df;color:#111}
 
-.brand{
-  font-size:24px;
-  font-weight:800;
-  color:#ff7a1a;
-}
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 10px 26px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:8px}
+.card img{width:100%;height:140px;object-fit:cover;border-radius:10px;background:#fafafa}
+.title{font-weight:800}
+.cat{display:inline-block;background:#fff5ef;color:var(--accent);padding:5px 8px;border-radius:999px;font-size:12px}
 
-.config-btn{
-  background:rgba(255,255,255,.85);
-  border:0;
-  padding:8px 14px;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:600;
-}
+/* rows & small */
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.row input[type="number"]{width:80px;padding:8px;border-radius:8px;border:1px solid #e6e9ee}
 
-/* ================= PANELS ================= */
-.panel{
-  background:var(--panel);
-  backdrop-filter: blur(6px);
-  border-radius:16px;
-  padding:14px;
-  margin-bottom:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25);
-}
+/* Section large */
+.section{background:rgba(255,255,255,0.96);padding:16px;border-radius:12px;margin-top:18px;box-shadow:0 10px 26px rgba(0,0,0,.06)}
 
-/* ================= FILTERS ================= */
-.controls{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
+/* toast */
+.toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 12px;border-radius:8px;display:none;z-index:9999}
 
-.controls input,
-.controls select{
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #e5e7eb;
-}
-
-.controls button{
-  background:#e5e7eb;
-  border:0;
-  padding:10px 14px;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:600;
-}
-
-/* ================= GRID ================= */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-}
-
-/* ================= CARD ================= */
-.card{
-  background:var(--card);
-  backdrop-filter: blur(8px);
-  border-radius:18px;
-  padding:12px;
-  box-shadow:0 15px 40px rgba(0,0,0,.35);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  transition:.15s;
-}
-
-.card:hover{
-  transform:translateY(-8px);
-}
-
-.card img{
-  width:100%;
-  height:150px;
-  object-fit:cover;
-  border-radius:14px;
-}
-
-.title{
-  font-weight:800;
-  font-size:16px;
-}
-
-.cat{
-  background:var(--accent-soft);
-  color:var(--accent);
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  width:max-content;
-}
-
-.price{
-  font-size:18px;
-  font-weight:800;
-  color:var(--accent);
-}
-
-/* ================= ACTIONS ================= */
-.actions{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-}
-
-.actions input{
-  width:80px;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #e5e7eb;
-}
-
-.btn{
-  background:var(--accent);
-  color:#fff;
-  border:0;
-  padding:9px 14px;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:700;
-}
-
-/* ================= TOAST ================= */
-.toast{
-  position:fixed;
-  right:20px;
-  bottom:20px;
-  background:#111;
-  color:#fff;
-  padding:10px 14px;
-  border-radius:10px;
-  display:none;
-  z-index:9999;
+/* responsive */
+@media (max-width:720px){
+ .grid{grid-template-columns:1fr}
+ .brand{font-size:18px}
 }
 </style>
 </head>
-
 <body>
 <div class="container">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="brand">🍽 POS – Restaurante Familiar</div>
-    <button id="btnConfig" class="config-btn">⚙ Configuración</button>
+    <button id="btnConfig" class="config-btn" aria-expanded="false">⚙ Configuración</button>
   </div>
 
-  <!-- FILTROS -->
+  <!-- filtros -->
   <div class="panel">
     <div class="controls">
-      <input id="search" placeholder="Buscar producto…">
+      <input id="search" placeholder="Buscar producto..." />
       <select id="filtrocategoria"><option value="">Todas</option></select>
       <select id="metrica">
         <option value="precio">Ordenar por precio</option>
         <option value="nombre">Ordenar por nombre</option>
       </select>
-      <button id="btnRefrescar">Actualizar</button>
+      <button id="btnRefrescar" class="btn sec">Actualizar</button>
     </div>
   </div>
 
-  <!-- PRODUCTOS -->
+  <!-- productos -->
   <div id="grid" class="grid"></div>
+
+  <!-- registro rapido -->
+  <div class="section" style="margin-top:18px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select id="quickSelect" style="min-width:240px;padding:9px;border-radius:8px;border:1px solid #e6e9ee"></select>
+      <input id="quickQty" type="number" value="1" min="1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
+      <select id="quickPago" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+      </select>
+      <button id="quickSell" class="btn">Vender</button>
+    </div>
+  </div>
+
+  <!-- reporte -->
+  <div class="section">
+    <h3 style="margin:0 0 8px 0">Reporte</h3>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="selectDias" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
+        <option value="7">Últimos 7 días</option>
+        <option value="30">Últimos 30 días</option>
+      </select>
+      <div id="reportInfo" style="font-weight:700;color:var(--accent)"></div>
+    </div>
+    <div id="reportTable" style="margin-top:12px"></div>
+  </div>
+
+  <!-- panel de configuración (oculto por defecto) -->
+  <div id="configPanel" class="section" style="display:none;margin-top:18px">
+    <h3 style="margin-top:0">Configuración API</h3>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="apiUrl" placeholder="Pega tu URL Apps Script (Web app) - termina en /exec" style="flex:1;padding:9px;border-radius:8px;border:1px solid #e6e9ee" />
+      <button id="guardarApi" class="btn">Guardar</button>
+      <button id="probarApi" class="btn sec">Probar</button>
+    </div>
+    <div style="margin-top:8px;color:var(--muted);font-size:13px">La URL se guarda en este navegador (localStorage). Si cambias de equipo pega la URL de nuevo.</div>
+  </div>
 
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-const $=id=>document.getElementById(id);
-let API_URL=localStorage.getItem("api_url_rest")||"";
-let MENU=[];
+/* ======= CONFIG / HELPERS ======= */
+const $ = id => document.getElementById(id);
 
-const IMAGE_MAP={
-  chicharron:"chicharron.jpg",
-  escabeche:"escabeche.jpg",
-  chorizo:"chorizo.jpg",
-  fricase:"fricase.webp",
-  chichadoble:"chicha.jpg",
-  chichalata:"chicha.jpg",
-  chichabalde:"chicha.jpg",
-  chichaalojadoble:"chichaMorada.webp",
-  chichaalojalata:"chichaMorada.webp",
-  chichaalojabalde:"chichaMorada.webp",
-  cervezaunidad:"cerveza.jpg",
-  refresco2l:"Refresco2L.webp",
-  refresco3l:"3L.webp"
-};
+// si quieres que la app muestre algo sin API, mantenemos un MENU por defecto
+const DEFAULT_MENU = [
+  { id:1, nombre:"Chicharron", precio:50, categoria:"Comida", imagen:"chicharron.jpg" },
+  { id:2, nombre:"Escabeche", precio:30, categoria:"Comida", imagen:"escabeche.jpg" },
+  { id:3, nombre:"Chorizo", precio:20, categoria:"Comida", imagen:"chorizo.jpg" },
+  { id:4, nombre:"Fricase", precio:30, categoria:"Comida", imagen:"fricase.webp" },
+  { id:5, nombre:"Chicha doble", precio:6, categoria:"Bebida", imagen:"chicha.jpg" },
+  { id:6, nombre:"Chicha lata", precio:70, categoria:"Bebida", imagen:"chicha.jpg" },
+  { id:7, nombre:"Chicha balde", precio:18, categoria:"Bebida", imagen:"chicha.jpg" },
+  { id:8, nombre:"Chicha aloja doble", precio:8, categoria:"Bebida", imagen:"chichaMorada.webp" },
+  { id:9, nombre:"Cerveza unidad", precio:15, categoria:"Bebida", imagen:"cerveza.jpg" },
+  { id:10, nombre:"Refresco 2L", precio:14, categoria:"Bebida", imagen:"Refresco2L.webp" },
+  { id:11, nombre:"Refresco 3L", precio:20, categoria:"Bebida", imagen:"3L.webp" }
+];
 
-const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
+let API_URL = localStorage.getItem('api_url_rest') || "";
+let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
 
-function imgFor(i){
-  if(i.imagen) return "Imagenes/"+i.imagen;
-  return "Imagenes/"+(IMAGE_MAP[norm(i.nombre)]||"fondoWEB.avif");
+function toast(msg){
+  const t = $('toast'); t.textContent=msg; t.style.display='block';
+  setTimeout(()=> t.style.display='none', 2400);
 }
 
-async function loadMenu(){
-  const r=await fetch(API_URL+"?action=menu");
-  const d=await r.json();
-  MENU=d.map(i=>({
-    id:i.id,
-    nombre:i.nombre,
-    precio:+(i.precio||i.precio_venta),
-    categoria:i.categoria,
-    imagen:i.imagen||""
-  }));
-  render();
+/* determina ruta de imagen — si item.imagen existe se usa */
+function imgFor(item){
+  if(item.imagen) return `Imagenes/${item.imagen}`;
+  // fallback por nombre simplificado
+  const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
+  const MAP = {
+    chicharron:"chicharron.jpg",
+    escabeche:"escabeche.jpg",
+    chorizo:"chorizo.jpg",
+    fricase:"fricase.webp",
+    chichadoble:"chicha.jpg",
+    chichalata:"chicha.jpg",
+    chichabalde:"chicha.jpg",
+    chichaalojadoble:"chichaMorada.webp",
+    cervezaunidad:"cerveza.jpg",
+    refresco2l:"Refresco2L.webp",
+    refresco3l:"3L.webp"
+  };
+  return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
 }
 
-function render(){
-  $("grid").innerHTML=MENU.map(i=>`
-    <div class="card">
-      <img src="${imgFor(i)}">
+/* ===== RENDER MENU ===== */
+function renderMenu(){
+  const q = ($('search').value||"").toLowerCase();
+  const cat = $('filtrocategoria').value || "";
+  const met = $('metrica').value || "precio";
+
+  let list = MENU.slice();
+  if(q) list = list.filter(i => (i.nombre||"").toLowerCase().includes(q));
+  if(cat) list = list.filter(i => i.categoria === cat);
+
+  if(met === 'precio') list.sort((a,b)=> a.precio - b.precio);
+  if(met === 'nombre') list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre));
+
+  $('grid').innerHTML = list.map(i => `
+    <div class="card" id="card_${i.id}">
+      <img src="${imgFor(i)}" alt="${i.nombre}" onerror="this.onerror=null;this.src='Imagenes/fondoWEB.avif'">
       <div class="title">${i.nombre}</div>
-      <div class="cat">${i.categoria}</div>
-      <div class="price">Bs ${i.precio.toFixed(2)}</div>
-      <div class="actions">
-        <input type="number" value="1">
-        <button class="btn">Vender</button>
+      <div class="cat">${i.categoria || ''}</div>
+      <div class="price">Bs ${Number(i.precio).toFixed(2)}</div>
+      <div class="row">
+        <input id="qty_${i.id}" type="number" value="1" min="1">
+        <button onclick="sell(${i.id})">Vender</button>
       </div>
     </div>
-  `).join("");
+  `).join('');
 }
 
-if(API_URL) loadMenu();
+/* ===== SELECTS ===== */
+function loadCats(){
+  const cats = [...new Set(MENU.map(x=>x.categoria).filter(Boolean))];
+  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
+
+/* ===== VENTAS ===== */
+async function sell(id){
+  const item = MENU.find(x=>String(x.id)===String(id));
+  if(!item) return toast('Producto no encontrado');
+  const qtyEl = $(`qty_${id}`);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+  await sendSale(item, qty);
+}
+
+async function sendSale(item, qty, pago='efectivo'){
+  if(!API_URL){
+    toast('Configura la API para registrar ventas (botón ⚙ arriba)');
+    return;
+  }
+  const form = new URLSearchParams();
+  form.append('action','registrar_venta');
+  form.append('producto_id', item.id);
+  form.append('producto_nombre', item.nombre);
+  form.append('cantidad', qty);
+  form.append('precio_unitario', item.precio);
+  form.append('total', (item.precio * qty));
+  form.append('pago', pago);
+
+  try{
+    const resp = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: form.toString()
+    });
+    const j = await resp.json().catch(()=>({}));
+    if(j.ok || resp.ok){
+      toast('Venta registrada');
+      updateReport();
+    } else {
+      console.error('API respuesta', j);
+      toast('Error: la API devolvió un resultado inesperado');
+    }
+  }catch(err){
+    console.error('sendSale error', err);
+    toast('No se pudo conectar con la API');
+  }
+}
+
+/* ===== REPORTE ===== */
+async function updateReport(){
+  if(!API_URL){
+    // mostrar reporte vacío si no hay api
+    $('reportInfo').textContent = 'Sin datos (configura API)';
+    $('reportTable').innerHTML = '';
+    return;
+  }
+  try{
+    const dias = $('selectDias').value || 7;
+    const r = await fetch(`${API_URL}?action=reporte&dias=${dias}`);
+    const j = await r.json();
+    $('reportInfo').textContent = `Ingresos: Bs ${Number(j.ingresos_totales||0).toFixed(2)}`;
+    $('reportTable').innerHTML = '<ul>' + (j.items||[]).map(it=>`<li>${it.nombre}: ${it.cantidad} (Bs ${Number(it.total||0).toFixed(2)})</li>`).join('') + '</ul>';
+  }catch(err){
+    console.error('updateReport err', err);
+    $('reportInfo').textContent = 'Error cargando reporte';
+    $('reportTable').innerHTML = '';
+  }
+}
+
+/* ===== CARGAR DESDE API (si se configuró) ===== */
+async function loadMenuFromApi(){
+  if(!API_URL) return;
+  try{
+    const r = await fetch(API_URL + '?action=menu');
+    const data = await r.json();
+    if(Array.isArray(data) && data.length>0){
+      // normalizar
+      MENU = data.map(it => ({
+        id: it.id ?? it.ID ?? it.producto_id ?? Math.random()*100000,
+        nombre: it.nombre ?? it.name ?? it.producto_nombre ?? '',
+        precio: Number(it.precio ?? it.precio_venta ?? it.price ?? 0),
+        categoria: it.categoria ?? it.category ?? '',
+        imagen: it.imagen ?? it.image ?? ''
+      }));
+      loadCats(); loadQuick(); renderMenu(); updateReport();
+      return;
+    }
+    // si la API respondió pero sin datos, dejamos DEFAULT_MENU
+    loadCats(); loadQuick(); renderMenu(); updateReport();
+  }catch(err){
+    console.error('loadMenuFromApi error', err);
+    toast('No se pudo cargar menú desde API (revisa URL)');
+    // dejamos MENU por defecto para que UI funcione
+    loadCats(); loadQuick(); renderMenu(); updateReport();
+  }
+}
+
+/* ===== EVENTOS ===== */
+$('search').addEventListener('input', renderMenu);
+$('filtrocategoria').addEventListener('change', renderMenu);
+$('metrica').addEventListener('change', renderMenu);
+$('btnRefrescar').addEventListener('click', renderMenu);
+
+$('quickSell').addEventListener('click', async ()=>{
+  const id = $('quickSelect').value;
+  const qty = Number($('quickQty').value || 1);
+  const pago = $('quickPago').value || 'efectivo';
+  const item = MENU.find(x=>String(x.id)===String(id));
+  if(!item) return toast('Selecciona un producto en Registro rápido');
+  await sendSale(item, qty, pago);
+});
+
+$('selectDias').addEventListener('change', updateReport);
+
+/* CONFIG toggle */
+$('btnConfig').addEventListener('click', ()=>{
+  const panel = $('configPanel');
+  const is = panel.style.display === 'block';
+  panel.style.display = is ? 'none' : 'block';
+  $('btnConfig').setAttribute('aria-expanded', (!is).toString());
+});
+
+/* guardar / probar API */
+$('guardarApi').addEventListener('click', ()=>{
+  const v = $('apiUrl').value.trim();
+  if(!v){ toast('Pega la URL de tu Apps Script'); return; }
+  API_URL = v;
+  localStorage.setItem('api_url_rest', v);
+  toast('API guardada');
+  loadMenuFromApi();
+});
+
+$('probarApi').addEventListener('click', async ()=>{
+  const v = $('apiUrl').value.trim() || API_URL;
+  if(!v){ toast('No hay URL'); return; }
+  try{
+    const r = await fetch(v + '?action=menu');
+    toast(r.ok ? 'API OK' : 'API respondió con error');
+  }catch(e){ console.error(e); toast('Error al probar API'); }
+});
+
+/* quick init, mostrar valores guardados y cargar menu local o desde API */
+(function init(){
+  // llenar campos
+  if($('apiUrl')) $('apiUrl').value = API_URL;
+  loadCats();
+  loadQuick();
+  renderMenu();
+  updateReport();
+  // si habia API guardada, intentar cargar desde ella
+  if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
+})();
 </script>
 </body>
 </html>
