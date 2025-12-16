@@ -250,17 +250,24 @@ function imgFor(item){
   // fallback por nombre simplificado
   const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
   const MAP = {
-    chicharron:"chicharron.jpg",
-    escabeche:"escabeche.jpg",
-    chorizo:"chorizo.jpg",
-    fricase:"fricase.webp",
-    chichadoble:"chicha.jpg",
-    chichalata:"chicha.jpg",
-    chichabalde:"chicha.jpg",
-    chichaalojadoble:"chichaMorada.webp",
-    cervezaunidad:"cerveza.jpg",
-    refresco2l:"Refresco2L.webp",
-    refresco3l:"3L.webp"
+  chicharron: "chicharron.jpg",
+  escabeche: "escabeche.jpg",
+  chorizo: "chorizo.jpg",
+  fricase: "fricase.webp",
+
+  // chichas: asignar chichaMorada.webp a las variantes "aloja lata" y "aloja balde"
+  chichadoble: "chicha.jpg",
+  chichalata: "chicha.jpg",        // "Chicha lata" 
+  chichabalde: "chicha.jpg",       // "Chicha balde" 
+
+  // cubrimos también nombres "Chicha aloja ..." por si vienen con la palabra "aloja"
+  chichaalojadoble: "chichaMorada.webp",
+  chichaalojalata: "chichaMorada.webp",
+  chichaalojabalde: "chichaMorada.webp",
+
+  cervezaunidad: "cerveza.jpg",
+  refresco2l: "Refresco2L.webp",
+  refresco3l: "3L.webp"
   };
   return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
 }
