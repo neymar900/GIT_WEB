@@ -126,6 +126,15 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
   margin-left:12px;background:transparent;border:0;color:#8892a3;font-weight:700;cursor:pointer;
 }
 
+/* ====== Confirm modal (antes de vender) ====== */
+.confirm-modal { position: fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(6,6,6,0.28); z-index:12500; opacity:0; pointer-events:none; transition: opacity .15s ease; }
+.confirm-modal.show { opacity:1; pointer-events:auto; }
+.confirm-card { background:#fff; padding:18px; border-radius:12px; width:360px; box-shadow:0 20px 40px rgba(0,0,0,.18); }
+.confirm-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+.confirm-card label{ font-weight:700; font-size:13px; display:block; margin-bottom:6px; }
+.confirm-card input[type="number"]{ width:100px; padding:8px; border-radius:8px; border:1px solid #e6e9ee; }
+.confirm-card select{ padding:8px; border-radius:8px; border:1px solid #e6e9ee; }
+
 /* ====== Últimas ventas (panel) ====== */
 .last-sale{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px dashed #eee;font-size:14px}
 .last-sale small{color:#666;margin-right:8px;width:60px}
@@ -134,6 +143,7 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 .pago.qr{ color:#0ea5e9 }
 .pago.efectivo{ color:#16a34a }
 .pago.tarjeta{ color:#f97316 }
+.last-sale.anulada { opacity:0.7; text-decoration:line-through; color:#a33; }
 
 </style>
 </head>
@@ -192,6 +202,10 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
   <div class="section">
     <h3 style="margin:0 0 8px 0">Últimas ventas</h3>
     <div id="lastSales" style="min-height:40px;color:#333"></div>
+    <div style="margin-top:10px">
+      <button id="undoLast" class="btn sec">Deshacer última venta</button>
+      <small style="margin-left:8px;color:#666">Deshace la venta más reciente (anula y guarda registro de anulación)</small>
+    </div>
   </div>
 
   <!-- panel de configuración (oculto por defecto) -->
@@ -208,6 +222,34 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 </div>
 
 <div id="toast" class="toast"></div>
+
+<!-- Confirm modal -->
+<div id="confirmModal" class="confirm-modal" aria-hidden="true" role="dialog">
+  <div class="confirm-card" role="document">
+    <div style="font-weight:800" id="confirmProd">Confirmar venta</div>
+    <div style="margin-top:6px;color:#666" id="confirmPrice"></div>
+
+    <div class="confirm-row" style="margin-top:12px">
+      <div>
+        <label>Cantidad</label>
+        <input id="confirmQty" type="number" min="1" value="1">
+      </div>
+      <div style="flex:1">
+        <label>Pago</label>
+        <select id="confirmPago" style="width:100%">
+          <option value="efectivo">Efectivo</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="qr">QR</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button id="confirmCancel" class="btn sec">Cancelar</button>
+      <button id="confirmBtn" class="btn">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal de resultado -->
 <div id="resultModal" class="result-modal" aria-hidden="true" role="dialog" aria-modal="true">
@@ -261,6 +303,9 @@ let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
 /* ===== ÚLTIMAS VENTAS (local) ===== */
 let lastSales = JSON.parse(localStorage.getItem("last_sales")) || [];
 
+/* guardamos una referencia a la venta pendiente (confirm modal) */
+let pendingSale = null;
+
 function addLastSale(item, qty, pago){
   const total = Number(item.precio) * Number(qty);
   const entry = {
@@ -268,7 +313,8 @@ function addLastSale(item, qty, pago){
     nombre: item.nombre,
     qty: Number(qty),
     total: total,
-    pago: (pago || "efectivo").toLowerCase()
+    pago: (pago || "efectivo").toLowerCase(),
+    anulada: false
   };
   // añadir al inicio
   lastSales.unshift(entry);
@@ -285,16 +331,62 @@ function renderLastSales(){
     cont.innerHTML = "<small>No hay ventas aún</small>";
     return;
   }
-  cont.innerHTML = lastSales.map(v => `
-    <div class="last-sale">
+  cont.innerHTML = lastSales.map((v, idx) => `
+    <div class="last-sale ${v.anulada ? 'anulada' : ''}" data-idx="${idx}">
       <small>${v.hora}</small>
-      <div class="nombre">${v.nombre} x${v.qty}</div>
+      <div class="nombre">${v.nombre} ${v.anulada ? '(ANULADA)' : ''} x${v.qty}</div>
       <div class="pago ${v.pago}">${v.pago.toUpperCase()}</div>
       <div><strong>Bs ${Number(v.total).toFixed(2)}</strong></div>
     </div>
   `).join('');
 }
 
+/* DESHACER ÚLTIMA VENTA (anulación) */
+async function undoLastSale(){
+  if(!lastSales || lastSales.length === 0){
+    toast('No hay ventas para deshacer');
+    return;
+  }
+  const last = lastSales[0];
+  // crear entrada de anulación (no borrar el historial)
+  const anulacion = {
+    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    nombre: last.nombre,
+    qty: -Math.abs(last.qty || 1),
+    total: -Math.abs(last.total || 0),
+    pago: last.pago,
+    anulada: true
+  };
+  // añadir la anulación al inicio (para que quede visible)
+  lastSales.unshift(anulacion);
+  // limitar a 10 entries
+  lastSales = lastSales.slice(0,10);
+  localStorage.setItem("last_sales", JSON.stringify(lastSales));
+  renderLastSales();
+
+  // intentar notificar a la API (si existe) — opcional y no bloqueante
+  if(API_URL){
+    try{
+      const form = new URLSearchParams();
+      form.append('action','anular_venta');
+      form.append('producto_nombre', last.nombre);
+      form.append('cantidad', last.qty);
+      form.append('total', last.total);
+      form.append('pago', last.pago);
+      await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form.toString() });
+    }catch(e){
+      // ignore — es solo intento
+      console.warn('No se pudo notificar anulación a API', e);
+    }
+  }
+
+  // feedback
+  soundERR.currentTime = 0;
+  soundERR.play();
+  toast('Última venta anulada');
+}
+
+/* ===== Helpers UI ===== */
 function toast(msg){
   const t = $('toast'); t.textContent=msg; t.style.display='block';
   setTimeout(()=> t.style.display='none', 2400);
@@ -303,24 +395,18 @@ function toast(msg){
 /* determina ruta de imagen — si item.imagen existe se usa */
 function imgFor(item){
   if(item.imagen) return `Imagenes/${item.imagen}`;
-  // fallback por nombre simplificado
   const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
   const MAP = {
   chicharron: "chicharron.jpg",
   escabeche: "escabeche.jpg",
   chorizo: "chorizo.jpg",
   fricase: "fricase.webp",
-
-  // chichas: asignar chichaMorada.webp a las variantes "aloja lata" y "aloja balde"
   chichadoble: "chicha.jpg",
   chichalata: "chicha.jpg",
   chichabalde: "chicha.jpg",
-
-  // cubrimos también nombres "Chicha aloja ..." por si vienen con la palabra "aloja"
   chichaalojadoble: "chichaMorada.webp",
   chichaalojalata: "chichaMorada.webp",
   chichaalojabalde: "chichaMorada.webp",
-
   cervezaunidad: "cerveza.jpg",
   refresco2l: "Refresco2L.webp",
   refresco3l: "3L.webp"
@@ -363,12 +449,37 @@ function loadCats(){
 function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
 
 /* ===== VENTAS ===== */
-async function sell(id){
+/* ahora sell muestra modal de confirmación */
+function sell(id){
   const item = MENU.find(x=>String(x.id)===String(id));
   if(!item) return toast('Producto no encontrado');
   const qtyEl = $(`qty_${id}`);
   const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
-  await sendSale(item, qty);
+  const pagoDefault = 'efectivo';
+  showConfirmModal(item, qty, pagoDefault);
+}
+
+/* === Confirm modal logic === */
+function showConfirmModal(item, qty = 1, pago = 'efectivo'){
+  pendingSale = { item, qty, pago };
+  $('confirmProd').textContent = item.nombre;
+  $('confirmPrice').textContent = `Bs ${Number(item.precio).toFixed(2)}`;
+  $('confirmQty').value = qty;
+  $('confirmPago').value = pago || 'efectivo';
+  const m = $('confirmModal');
+  m.classList.add('show');
+  m.setAttribute('aria-hidden','false');
+
+  // asignar handlers
+  $('confirmCancel').onclick = ()=>{ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); pendingSale = null; };
+  $('confirmBtn').onclick = ()=>{
+    const q = Number($('confirmQty').value || 1);
+    const p = $('confirmPago').value || 'efectivo';
+    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+    // invocar venta real
+    sendSale(item, q, p);
+    pendingSale = null;
+  };
 }
 
 /* === Helper modal de resultado === */
@@ -423,10 +534,10 @@ $('resultClose')?.addEventListener('click', ()=>{
 /* === REEMPLAZA sendSale por esta versión === */
 async function sendSale(item, qty, pago = "efectivo"){
   if(!API_URL){
-    // mostramos modal de error si no está configurada
-    soundERR.currentTime = 0;
-    soundERR.play();
-    showResultModal('error', 'API no configurada', 'Pega la URL en Configuración (⚙) para registrar ventas.');
+    // si no hay API, igual guardamos la venta localmente (útil en campo)
+    addLastSale(item, qty, pago);
+    soundOK.currentTime = 0; soundOK.play();
+    showResultModal('success', 'Venta registrada (local)', 'La venta se guardó localmente porque no hay API.');
     return;
   }
   if(!item){
@@ -476,9 +587,11 @@ async function sendSale(item, qty, pago = "efectivo"){
     }
   }catch(err){
     console.error('sendSale error', err);
-    soundERR.currentTime = 0;
-    soundERR.play();
-    showResultModal('error', 'Fallo de conexión', 'No se pudo conectar con la API.');
+    // en caso de fallo de conexión podemos guardar localmente para no perder la venta
+    addLastSale(item, qty, pago);
+    soundOK.currentTime = 0;
+    soundOK.play();
+    showResultModal('success', 'Venta registrada (offline)', 'No se pudo conectar con la API — venta guardada localmente.');
   }
 }
 
@@ -543,7 +656,7 @@ $('quickSell').addEventListener('click', async ()=>{
   const pago = $('quickPago').value || 'efectivo';
   const item = MENU.find(x=>String(x.id)===String(id));
   if(!item) return toast('Selecciona un producto en Registro rápido');
-  await sendSale(item, qty, pago);
+  showConfirmModal(item, qty, pago);
 });
 
 $('selectDias').addEventListener('change', updateReport);
@@ -574,6 +687,8 @@ $('probarApi').addEventListener('click', async ()=>{
     toast(r.ok ? 'API OK' : 'API respondió con error');
   }catch(e){ console.error(e); toast('Error al probar API'); }
 });
+
+$('undoLast').addEventListener('click', ()=>{ undoLastSale(); });
 
 /* quick init, mostrar valores guardados y cargar menu local o desde API */
 (function init(){
