@@ -221,6 +221,13 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 /* ======= CONFIG / HELPERS ======= */
 const $ = id => document.getElementById(id);
 
+/* ====== SONIDOS ====== */
+const soundOK = new Audio("SONIDOS/ok.mp3");
+const soundERR = new Audio("SONIDOS/error.mp3");
+
+soundOK.volume = 0.6;
+soundERR.volume = 0.6;
+
 // si quieres que la app muestre algo sin API, mantenemos un MENU por defecto
 const DEFAULT_MENU = [
   { id:1, nombre:"Chicharron", precio:50, categoria:"Comida", imagen:"chicharron.jpg" },
@@ -257,8 +264,8 @@ function imgFor(item){
 
   // chichas: asignar chichaMorada.webp a las variantes "aloja lata" y "aloja balde"
   chichadoble: "chicha.jpg",
-  chichalata: "chicha.jpg",        // "Chicha lata" 
-  chichabalde: "chicha.jpg",       // "Chicha balde" 
+  chichalata: "chicha.jpg",       
+  chichabalde: "chicha.jpg",      
 
   // cubrimos también nombres "Chicha aloja ..." por si vienen con la palabra "aloja"
   chichaalojadoble: "chichaMorada.webp",
@@ -368,10 +375,14 @@ $('resultClose')?.addEventListener('click', ()=>{
 async function sendSale(item, qty, pago = "efectivo"){
   if(!API_URL){
     // mostramos modal de error si no está configurada
+    soundERR.currentTime = 0;
+    soundERR.play();
     showResultModal('error', 'API no configurada', 'Pega la URL en Configuración (⚙) para registrar ventas.');
     return;
   }
   if(!item){
+    soundERR.currentTime = 0;
+    soundERR.play();
     showResultModal('error', 'Producto no encontrado', 'Reintenta o recarga el menú.');
     return;
   }
@@ -398,16 +409,23 @@ async function sendSale(item, qty, pago = "efectivo"){
 
     if(res.ok && (j === null || j.ok === true || j.ok === undefined)){
       // éxito
+      soundOK.currentTime = 0;
+      soundOK.play();
+
       showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
       // actualizamos reporte (si corresponde)
       updateReport();
     } else {
       // API respondió con error
       console.error('API error', j);
+      soundERR.currentTime = 0;
+      soundERR.play();
       showResultModal('error', 'Error en API', (j && (j.mensaje || j.message)) ? (j.mensaje || j.message) : 'La API no registró la venta.');
     }
   }catch(err){
     console.error('sendSale error', err);
+    soundERR.currentTime = 0;
+    soundERR.play();
     showResultModal('error', 'Fallo de conexión', 'No se pudo conectar con la API.');
   }
 }
