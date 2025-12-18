@@ -91,7 +91,6 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 }
 .result-modal.show .result-card{ transform: translateY(0) scale(1); }
 
-/* icon area */
 .result-icon{
   width:56px; height:56px; border-radius:999px;
   display:grid;place-items:center;
@@ -101,12 +100,10 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 .result-icon.success{ background: linear-gradient(180deg,#16a34a,#0ea05e); color:#fff; }
 .result-icon.error{ background: linear-gradient(180deg,#ef4444,#f05a4b); color:#fff; }
 
-/* message */
 .result-body{ flex:1 }
 .result-title{ font-weight:800; font-size:16px; margin-bottom:6px }
 .result-text{ color:#475569; font-size:14px }
 
-/* check animation (SVG stroke draw) */
 .check-svg path {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
@@ -117,7 +114,6 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
   to { stroke-dashoffset: 0; }
 }
 
-/* cross animation */
 .cross-svg line {
   stroke-dasharray: 40;
   stroke-dashoffset: 40;
@@ -126,10 +122,19 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 }
 @keyframes drawCross { to { stroke-dashoffset: 0; } }
 
-/* pequeño botón cerrar (opcional) */
 .result-close{
   margin-left:12px;background:transparent;border:0;color:#8892a3;font-weight:700;cursor:pointer;
 }
+
+/* ====== Últimas ventas (panel) ====== */
+.last-sale{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px dashed #eee;font-size:14px}
+.last-sale small{color:#666;margin-right:8px;width:60px}
+.last-sale .nombre{flex:1;padding:0 8px}
+.last-sale .pago{font-weight:700;margin-right:8px}
+.pago.qr{ color:#0ea5e9 }
+.pago.efectivo{ color:#16a34a }
+.pago.tarjeta{ color:#f97316 }
+
 </style>
 </head>
 <body>
@@ -164,6 +169,7 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
       <select id="quickPago" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
         <option value="efectivo">Efectivo</option>
         <option value="tarjeta">Tarjeta</option>
+        <option value="qr">QR</option>
       </select>
       <button id="quickSell" class="btn">Vender</button>
     </div>
@@ -180,6 +186,12 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
       <div id="reportInfo" style="font-weight:700;color:var(--accent)"></div>
     </div>
     <div id="reportTable" style="margin-top:12px"></div>
+  </div>
+
+  <!-- ÚLTIMAS VENTAS -->
+  <div class="section">
+    <h3 style="margin:0 0 8px 0">Últimas ventas</h3>
+    <div id="lastSales" style="min-height:40px;color:#333"></div>
   </div>
 
   <!-- panel de configuración (oculto por defecto) -->
@@ -246,6 +258,43 @@ const DEFAULT_MENU = [
 let API_URL = localStorage.getItem('api_url_rest') || "";
 let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
 
+/* ===== ÚLTIMAS VENTAS (local) ===== */
+let lastSales = JSON.parse(localStorage.getItem("last_sales")) || [];
+
+function addLastSale(item, qty, pago){
+  const total = Number(item.precio) * Number(qty);
+  const entry = {
+    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    nombre: item.nombre,
+    qty: Number(qty),
+    total: total,
+    pago: (pago || "efectivo").toLowerCase()
+  };
+  // añadir al inicio
+  lastSales.unshift(entry);
+  // mantener solo últimas 10
+  lastSales = lastSales.slice(0,10);
+  localStorage.setItem("last_sales", JSON.stringify(lastSales));
+  renderLastSales();
+}
+
+function renderLastSales(){
+  const cont = $('lastSales');
+  if(!cont) return;
+  if(lastSales.length === 0){
+    cont.innerHTML = "<small>No hay ventas aún</small>";
+    return;
+  }
+  cont.innerHTML = lastSales.map(v => `
+    <div class="last-sale">
+      <small>${v.hora}</small>
+      <div class="nombre">${v.nombre} x${v.qty}</div>
+      <div class="pago ${v.pago}">${v.pago.toUpperCase()}</div>
+      <div><strong>Bs ${Number(v.total).toFixed(2)}</strong></div>
+    </div>
+  `).join('');
+}
+
 function toast(msg){
   const t = $('toast'); t.textContent=msg; t.style.display='block';
   setTimeout(()=> t.style.display='none', 2400);
@@ -264,8 +313,8 @@ function imgFor(item){
 
   // chichas: asignar chichaMorada.webp a las variantes "aloja lata" y "aloja balde"
   chichadoble: "chicha.jpg",
-  chichalata: "chicha.jpg",       
-  chichabalde: "chicha.jpg",      
+  chichalata: "chicha.jpg",
+  chichabalde: "chicha.jpg",
 
   // cubrimos también nombres "Chicha aloja ..." por si vienen con la palabra "aloja"
   chichaalojadoble: "chichaMorada.webp",
@@ -412,6 +461,9 @@ async function sendSale(item, qty, pago = "efectivo"){
       soundOK.currentTime = 0;
       soundOK.play();
 
+      // AGREGAR A ÚLTIMAS VENTAS (local)
+      addLastSale(item, qty, pago);
+
       showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
       // actualizamos reporte (si corresponde)
       updateReport();
@@ -531,6 +583,7 @@ $('probarApi').addEventListener('click', async ()=>{
   loadQuick();
   renderMenu();
   updateReport();
+  renderLastSales(); // inicializar listado de últimas ventas
   // si habia API guardada, intentar cargar desde ella
   if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
 })();
