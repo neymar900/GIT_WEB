@@ -198,6 +198,21 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
     <div id="reportTable" style="margin-top:12px"></div>
   </div>
 
+  <!-- ===== COMANDAS ABIERTAS (AÑADIDO) ===== -->
+  <div class="section" id="ordersSection" style="margin-top:18px">
+    <h3 style="margin:0 0 8px 0">Comandas abiertas</h3>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input id="newOrderName" placeholder="Nombre o Mesa (ej: Mesa 4)" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
+      <button id="createOrderBtn" class="btn">Crear comanda</button>
+      <button id="clearOrdersLocal" class="btn sec">Limpiar comandas (local)</button>
+      <small style="color:#666;margin-left:8px">Las comandas abiertas se guardan localmente.</small>
+    </div>
+
+    <div id="ordersList" style="min-height:40px"></div>
+  </div>
+  <!-- ===== FIN COMANDAS ABIERTAS ===== -->
+
   <!-- ÚLTIMAS VENTAS -->
   <div class="section">
     <h3 style="margin:0 0 8px 0">Últimas ventas</h3>
@@ -472,7 +487,7 @@ function showConfirmModal(item, qty = 1, pago = 'efectivo'){
 
   // asignar handlers
   $('confirmCancel').onclick = ()=>{ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); pendingSale = null; };
-  $('confirmBtn').onclick = ()=>{
+  $('confirmBtn').onclick = ()=>{ 
     const q = Number($('confirmQty').value || 1);
     const p = $('confirmPago').value || 'efectivo';
     m.classList.remove('show'); m.setAttribute('aria-hidden','true');
@@ -702,6 +717,142 @@ $('undoLast').addEventListener('click', ()=>{ undoLastSale(); });
   // si habia API guardada, intentar cargar desde ella
   if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
 })();
+
+/* ======= COMANDAS: LÓGICA (AÑADIDO) ======= */
+let ORDERS = JSON.parse(localStorage.getItem('orders_list') || '[]');
+
+function saveOrdersToStorage(){
+  localStorage.setItem('orders_list', JSON.stringify(ORDERS));
+}
+
+function renderOrders(){
+  const cont = $('ordersList');
+  if(!cont) return;
+  if(ORDERS.length === 0){
+    cont.innerHTML = '<small>No hay comandas abiertas</small>';
+    return;
+  }
+  cont.innerHTML = ORDERS.map(o => {
+    const total = o.items.reduce((s,it)=> s + (Number(it.precio)*Number(it.qty)), 0);
+    const itemsHtml = o.items.map(it => `
+      <div style="display:flex;gap:8px;align-items:center;padding:4px 0">
+        <div style="flex:1">${it.nombre} x${it.qty}</div>
+        <div>Bs ${Number(it.precio*it.qty).toFixed(2)}</div>
+        <div style="margin-left:8px">
+          <button onclick="changeQty('${o.id}','${it.producto_id}', ${Math.max(0, it.qty-1)})" class="btn sec">-</button>
+          <button onclick="changeQty('${o.id}','${it.producto_id}', ${it.qty+1})" class="btn sec">+</button>
+          <button onclick="removeItemFromOrder('${o.id}','${it.producto_id}')" class="btn sec">Quitar</button>
+        </div>
+      </div>
+    `).join('');
+    return `
+      <div style="border:1px solid #eee;padding:10px;border-radius:10px;margin-bottom:8px;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${o.name}</strong>
+          <div>
+            ${o.status === 'open' ? `<button onclick="closeOrderPrompt('${o.id}')" class="btn">Cerrar comanda</button>` : `<span style="color:#666">Pagada (${o.pago})</span>`}
+          </div>
+        </div>
+        <div style="margin-top:8px">${itemsHtml || '<small>Sin items</small>'}</div>
+        <div style="margin-top:8px;font-weight:700">Total: Bs ${Number(total).toFixed(2)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function createOrder(name){
+  const id = 'o_'+(Date.now());
+  const o = { id, name: name||('Mesa '+(ORDERS.length+1)), createdAt: Date.now(), items: [], pago: null, status:'open' };
+  ORDERS.unshift(o);
+  saveOrdersToStorage();
+  renderOrders();
+  toast('Comanda creada: '+o.name);
+  return o;
+}
+
+function addItemToOrder(orderId, producto, qty=1){
+  const order = ORDERS.find(o=>o.id===orderId);
+  if(!order) return toast('Comanda no encontrada');
+  const it = order.items.find(x=>String(x.producto_id) === String(producto.id));
+  if(it){
+    it.qty += Number(qty);
+  } else {
+    order.items.push({ producto_id: producto.id, nombre: producto.nombre, precio: Number(producto.precio), qty: Number(qty) });
+  }
+  saveOrdersToStorage();
+  renderOrders();
+  toast(producto.nombre + ' añadido a '+order.name);
+}
+
+function removeItemFromOrder(orderId, productoId){
+  const order = ORDERS.find(o=>o.id===orderId);
+  if(!order) return;
+  order.items = order.items.filter(i => String(i.producto_id) !== String(productoId));
+  saveOrdersToStorage();
+  renderOrders();
+}
+
+function changeQty(orderId, productoId, qty){
+  const order = ORDERS.find(o=>o.id===orderId); if(!order) return;
+  const it = order.items.find(x=>String(x.producto_id)===String(productoId)); if(!it) return;
+  it.qty = Number(qty) || 0;
+  if(it.qty <= 0) removeItemFromOrder(orderId, productoId);
+  else saveOrdersToStorage();
+  renderOrders();
+}
+
+function getOrderTotal(order){
+  return order.items.reduce((s,it)=> s + (Number(it.precio)*Number(it.qty)), 0);
+}
+
+// Cerrar comanda: registra ventas (envía cada item a sendSale) y marca pagada
+async function closeOrder(orderId, pago='efectivo'){
+  const order = ORDERS.find(o=>o.id===orderId);
+  if(!order) return toast('Comanda no encontrada');
+  if(order.items.length===0) return toast('Comanda vacía');
+
+  // enviar cada item como venta
+  for(const it of order.items){
+    const productoLike = { id: it.producto_id, nombre: it.nombre, precio: it.precio };
+    // espera por si quieres control de red. Puedes quitar await si prefieres paralelo.
+    await sendSale(productoLike, it.qty, pago);
+  }
+
+  order.status = 'paid';
+  order.pago = pago;
+  saveOrdersToStorage();
+  renderOrders();
+  toast('Comanda cerrada: '+order.name);
+}
+
+// Confirm modal for close (simple prompt)
+function closeOrderPrompt(orderId){
+  const pago = prompt('Tipo de pago: efectivo / qr / tarjeta', 'efectivo') || 'efectivo';
+  if(confirm('Cerrar comanda y registrar ventas?')) closeOrder(orderId, pago);
+}
+
+// Limpieza
+function clearOrdersLocal(){ ORDERS = []; saveOrdersToStorage(); renderOrders(); toast('Comandas locales limpiadas'); }
+
+// helper para añadir al primer pedido (útil temporalmente)
+window.addToOrder = function(orderId, productId, qty=1){
+  const prod = MENU.find(m=>String(m.id)===String(productId));
+  if(!prod) return toast('Producto no encontrado');
+  addItemToOrder(orderId, prod, qty);
+};
+
+// eventos botones comanda
+$('createOrderBtn')?.addEventListener('click', ()=> {
+  const v = $('newOrderName').value.trim();
+  createOrder(v);
+  $('newOrderName').value = '';
+});
+
+$('clearOrdersLocal')?.addEventListener('click', ()=> { if(confirm('Limpiar comandas locales? Esto no afecta ventas registradas.')) clearOrdersLocal(); });
+
+// inicializar render ordenes
+renderOrders();
+
 </script>
 </body>
 </html>
