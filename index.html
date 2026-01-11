@@ -761,17 +761,27 @@ function renderOrders(){
 }
 
 /* ====== EVENTOS COMANDAS (FIX DEFINITIVO) ====== */
-document.addEventListener('DOMContentLoaded', () => {
-
+(() => {
   const btnCreate = document.getElementById('createOrderBtn');
   const btnClear  = document.getElementById('clearOrdersLocal');
+  const input     = document.getElementById('newOrderName');
 
   if(btnCreate){
     btnCreate.addEventListener('click', () => {
-      const input = document.getElementById('newOrderName');
-      const name = input.value.trim() || `Mesa ${ORDERS.length + 1}`;
+      const name = (input?.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
       createOrder(name);
-      input.value = '';
+      if(input) input.value = '';
+    });
+  }
+
+  if(input){
+    input.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const name = (input.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
+        createOrder(name);
+        input.value = '';
+      }
     });
   }
 
@@ -785,8 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-});
+})();
 
 function createOrder(name){
   const id = 'o_'+(Date.now());
