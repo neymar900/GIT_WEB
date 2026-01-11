@@ -450,7 +450,7 @@ function renderMenu(){
       <div class="price">Bs ${Number(i.precio).toFixed(2)}</div>
       <div class="row">
         <input id="qty_${i.id}" type="number" value="1" min="1">
-        <button onclick="sell(${i.id})">Vender</button>
+        <button onclick="addToLatestOrder(${i.id})">Añadir a comanda</button>
       </div>
     </div>
   `).join('');
@@ -464,14 +464,9 @@ function loadCats(){
 function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
 
 /* ===== VENTAS ===== */
-/* ahora sell muestra modal de confirmación */
+/* Opción B: no se vende desde tarjetas, solo se añade a comanda */
 function sell(id){
-  const item = MENU.find(x=>String(x.id)===String(id));
-  if(!item) return toast('Producto no encontrado');
-  const qtyEl = $(`qty_${id}`);
-  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
-  const pagoDefault = 'efectivo';
-  showConfirmModal(item, qty, pagoDefault);
+  toast('La venta directa está deshabilitada. Usa "Añadir a comanda" y luego "Cerrar comanda".');
 }
 
 /* === Confirm modal logic === */
@@ -876,6 +871,22 @@ window.addToOrder = function(orderId, productId, qty=1){
   const prod = MENU.find(m=>String(m.id)===String(productId));
   if(!prod) return toast('Producto no encontrado');
   addItemToOrder(orderId, prod, qty);
+};
+
+/* Opción B: añadir a la comanda más reciente (crea una si no hay) */
+window.addToLatestOrder = function(productId){
+  const prod = MENU.find(m=>String(m.id)===String(productId));
+  if(!prod) return toast('Producto no encontrado');
+  // si no hay comandas, crear una automáticamente
+  if(!ORDERS || ORDERS.length === 0){
+    createOrder(`Mesa ${1}`);
+  }
+  const latest = ORDERS[0]; // la más reciente está al inicio (unshift)
+  const qtyEl = document.getElementById(`qty_${productId}`);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+  addItemToOrder(latest.id, prod, qty);
+  renderOrders();
+  toast(`${prod.nombre} x${qty} añadido a ${latest.name}`);
 };
 
 
