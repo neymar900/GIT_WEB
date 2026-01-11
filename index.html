@@ -266,6 +266,30 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
   </div>
 </div>
 
+<!-- Modal Añadir a comanda -->
+<div id="orderAddModal" class="confirm-modal" aria-hidden="true" role="dialog">
+  <div class="confirm-card" role="document">
+    <div style="font-weight:800" id="orderAddProd">Añadir a comanda</div>
+    <div style="margin-top:6px;color:#666" id="orderAddPrice"></div>
+
+    <div class="confirm-row" style="margin-top:12px">
+      <div>
+        <label>Cantidad</label>
+        <input id="orderAddQty" type="number" min="1" value="1">
+      </div>
+      <div style="flex:1">
+        <label>Agregar a comanda</label>
+        <select id="orderAddSelect" style="width:100%"></select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button id="orderAddCancel" class="btn sec">Cancelar</button>
+      <button id="orderAddConfirm" class="btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de resultado -->
 <div id="resultModal" class="result-modal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="result-card" role="document">
@@ -450,7 +474,7 @@ function renderMenu(){
       <div class="price">Bs ${Number(i.precio).toFixed(2)}</div>
       <div class="row">
         <input id="qty_${i.id}" type="number" value="1" min="1">
-        <button onclick="addToLatestOrder(${i.id})">Añadir a comanda</button>
+        <button onclick="openAddToOrderModal(${i.id})">Añadir a comanda</button>
       </div>
     </div>
   `).join('');
@@ -890,6 +914,64 @@ window.addToLatestOrder = function(productId){
 };
 
 
+
+/* ===== Modal: Añadir a comanda ===== */
+function populateOrderSelect(sel){
+  const opens = (ORDERS||[]).filter(o => o.status === 'open');
+  sel.innerHTML = opens.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+}
+
+window.openAddToOrderModal = function(productId){
+  const prod = MENU.find(m => String(m.id)===String(productId));
+  if(!prod) return toast('Producto no encontrado');
+
+  // Asegurar al menos una comanda abierta
+  const openCount = (ORDERS||[]).filter(o => o.status === 'open').length;
+  if(openCount === 0){
+    createOrder(`Mesa ${ORDERS.length + 1}`);
+  }
+
+  // Llenar encabezado
+  const title = document.getElementById('orderAddProd');
+  const price = document.getElementById('orderAddPrice');
+  if(title) title.textContent = `Añadir a comanda: ${prod.nombre}`;
+  if(price) price.textContent = `Bs ${Number(prod.precio).toFixed(2)}`;
+
+  // Cantidad por defecto: desde el input de la tarjeta si existe
+  const cardQtyEl = document.getElementById(`qty_${productId}`);
+  const qtyInit = cardQtyEl ? Number(cardQtyEl.value || 1) : 1;
+  const qtyEl = document.getElementById('orderAddQty');
+  if(qtyEl) qtyEl.value = qtyInit;
+
+  // Poblar selector de comandas abiertas
+  const sel = document.getElementById('orderAddSelect');
+  if(sel) populateOrderSelect(sel);
+
+  // Mostrar modal
+  const m = document.getElementById('orderAddModal');
+  if(!m) return;
+  m.classList.add('show');
+  m.setAttribute('aria-hidden','false');
+
+  // Handlers
+  const onCancel = () => {
+    m.classList.remove('show');
+    m.setAttribute('aria-hidden','true');
+  };
+  const onConfirm = () => {
+    const orderId = sel ? sel.value : '';
+    const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+    if(!orderId){ toast('Selecciona una comanda'); return; }
+    addItemToOrder(orderId, prod, qty);
+    m.classList.remove('show');
+    m.setAttribute('aria-hidden','true');
+  };
+
+  const btnCancel = document.getElementById('orderAddCancel');
+  const btnConfirm = document.getElementById('orderAddConfirm');
+  if(btnCancel) btnCancel.onclick = onCancel;
+  if(btnConfirm) btnConfirm.onclick = onConfirm;
+};
 
 // inicializar render ordenes
 renderOrders();
