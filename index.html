@@ -126,7 +126,7 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
   margin-left:12px;background:transparent;border:0;color:#8892a3;font-weight:700;cursor:pointer;
 }
 
-/* ====== Confirm modal (antes de vender) ====== */
+/* ====== Confirm modal (antes de vender / añadir a comanda) ====== */
 .confirm-modal { position: fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(6,6,6,0.28); z-index:12500; opacity:0; pointer-events:none; transition: opacity .15s ease; }
 .confirm-modal.show { opacity:1; pointer-events:auto; }
 .confirm-card { background:#fff; padding:18px; border-radius:12px; width:360px; box-shadow:0 20px 40px rgba(0,0,0,.18); }
@@ -181,7 +181,7 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
         <option value="tarjeta">Tarjeta</option>
         <option value="qr">QR</option>
       </select>
-      <button id="quickSell" class="btn">Vender</button>
+      <button id="quickSell" class="btn">Añadir a comanda</button>
     </div>
   </div>
 
@@ -238,10 +238,10 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
 
 <div id="toast" class="toast"></div>
 
-<!-- Confirm modal -->
+<!-- Confirm modal (ahora sirve para dos modos: 'sell' o 'add') -->
 <div id="confirmModal" class="confirm-modal" aria-hidden="true" role="dialog">
   <div class="confirm-card" role="document">
-    <div style="font-weight:800" id="confirmProd">Confirmar venta</div>
+    <div style="font-weight:800" id="confirmProd">Confirmar</div>
     <div style="margin-top:6px;color:#666" id="confirmPrice"></div>
 
     <div class="confirm-row" style="margin-top:12px">
@@ -250,8 +250,12 @@ button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;borde
         <input id="confirmQty" type="number" min="1" value="1">
       </div>
       <div style="flex:1">
-        <label>Pago</label>
-        <select id="confirmPago" style="width:100%">
+        <label id="confirmOrderLabel">Agregar a comanda</label>
+        <select id="confirmOrder" style="width:100%"></select>
+
+        <!-- pago solo visible en modo 'sell' -->
+        <label id="confirmPagoLabel" style="display:block;margin-top:8px;font-weight:700">Pago</label>
+        <select id="confirmPago" style="width:100%;display:block">
           <option value="efectivo">Efectivo</option>
           <option value="tarjeta">Tarjeta</option>
           <option value="qr">QR</option>
@@ -318,407 +322,10 @@ let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
 /* ===== ÚLTIMAS VENTAS (local) ===== */
 let lastSales = JSON.parse(localStorage.getItem("last_sales")) || [];
 
-/* guardamos una referencia a la venta pendiente (confirm modal) */
-let pendingSale = null;
+/* guardamos una referencia a la venta pendiente / context del modal */
+let pendingSale = null; // { mode: 'sell' | 'add', item, qty, pago }
 
-function addLastSale(item, qty, pago){
-  const total = Number(item.precio) * Number(qty);
-  const entry = {
-    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-    nombre: item.nombre,
-    qty: Number(qty),
-    total: total,
-    pago: (pago || "efectivo").toLowerCase(),
-    anulada: false
-  };
-  // añadir al inicio
-  lastSales.unshift(entry);
-  // mantener solo últimas 10
-  lastSales = lastSales.slice(0,10);
-  localStorage.setItem("last_sales", JSON.stringify(lastSales));
-  renderLastSales();
-}
-
-function renderLastSales(){
-  const cont = $('lastSales');
-  if(!cont) return;
-  if(lastSales.length === 0){
-    cont.innerHTML = "<small>No hay ventas aún</small>";
-    return;
-  }
-  cont.innerHTML = lastSales.map((v, idx) => `
-    <div class="last-sale ${v.anulada ? 'anulada' : ''}" data-idx="${idx}">
-      <small>${v.hora}</small>
-      <div class="nombre">${v.nombre} ${v.anulada ? '(ANULADA)' : ''} x${v.qty}</div>
-      <div class="pago ${v.pago}">${v.pago.toUpperCase()}</div>
-      <div><strong>Bs ${Number(v.total).toFixed(2)}</strong></div>
-    </div>
-  `).join('');
-}
-
-/* DESHACER ÚLTIMA VENTA (anulación) */
-async function undoLastSale(){
-  if(!lastSales || lastSales.length === 0){
-    toast('No hay ventas para deshacer');
-    return;
-  }
-  const last = lastSales[0];
-  // crear entrada de anulación (no borrar el historial)
-  const anulacion = {
-    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-    nombre: last.nombre,
-    qty: -Math.abs(last.qty || 1),
-    total: -Math.abs(last.total || 0),
-    pago: last.pago,
-    anulada: true
-  };
-  // añadir la anulación al inicio (para que quede visible)
-  lastSales.unshift(anulacion);
-  // limitar a 10 entries
-  lastSales = lastSales.slice(0,10);
-  localStorage.setItem("last_sales", JSON.stringify(lastSales));
-  renderLastSales();
-
-  // intentar notificar a la API (si existe) — opcional y no bloqueante
-  if(API_URL){
-    try{
-      const form = new URLSearchParams();
-      form.append('action','anular_venta');
-      form.append('producto_nombre', last.nombre);
-      form.append('cantidad', last.qty);
-      form.append('total', last.total);
-      form.append('pago', last.pago);
-      await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form.toString() });
-    }catch(e){
-      // ignore — es solo intento
-      console.warn('No se pudo notificar anulación a API', e);
-    }
-  }
-
-  // feedback
-  soundERR.currentTime = 0;
-  soundERR.play();
-  toast('Última venta anulada');
-}
-
-/* ===== Helpers UI ===== */
-function toast(msg){
-  const t = $('toast'); t.textContent=msg; t.style.display='block';
-  setTimeout(()=> t.style.display='none', 2400);
-}
-
-/* determina ruta de imagen — si item.imagen existe se usa */
-function imgFor(item){
-  if(item.imagen) return `Imagenes/${item.imagen}`;
-  const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
-  const MAP = {
-  chicharron: "chicharron.jpg",
-  escabeche: "escabeche.jpg",
-  chorizo: "chorizo.jpg",
-  fricase: "fricase.webp",
-  chichadoble: "chicha.jpg",
-  chichalata: "chicha.jpg",
-  chichabalde: "chicha.jpg",
-  chichaalojadoble: "chichaMorada.webp",
-  chichaalojalata: "chichaMorada.webp",
-  chichaalojabalde: "chichaMorada.webp",
-  cervezaunidad: "cerveza.jpg",
-  refresco2l: "Refresco2L.webp",
-  refresco3l: "3L.webp"
-  };
-  return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
-}
-
-/* ===== RENDER MENU ===== */
-function renderMenu(){
-  const q = ($('search').value||"").toLowerCase();
-  const cat = $('filtrocategoria').value || "";
-  const met = $('metrica').value || "precio";
-
-  let list = MENU.slice();
-  if(q) list = list.filter(i => (i.nombre||"").toLowerCase().includes(q));
-  if(cat) list = list.filter(i => i.categoria === cat);
-
-  if(met === 'precio') list.sort((a,b)=> a.precio - b.precio);
-  if(met === 'nombre') list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre));
-
-  $('grid').innerHTML = list.map(i => `
-    <div class="card" id="card_${i.id}">
-      <img src="${imgFor(i)}" alt="${i.nombre}" onerror="this.onerror=null;this.src='Imagenes/fondoWEB.avif'">
-      <div class="title">${i.nombre}</div>
-      <div class="cat">${i.categoria || ''}</div>
-      <div class="price">Bs ${Number(i.precio).toFixed(2)}</div>
-      <div class="row">
-        <input id="qty_${i.id}" type="number" value="1" min="1">
-        <button onclick="sell(${i.id})">Vender</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ===== SELECTS ===== */
-function loadCats(){
-  const cats = [...new Set(MENU.map(x=>x.categoria).filter(Boolean))];
-  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-}
-function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
-
-/* ===== VENTAS ===== */
-/* ahora sell muestra modal de confirmación */
-function sell(id){
-  const item = MENU.find(x=>String(x.id)===String(id));
-  if(!item) return toast('Producto no encontrado');
-  const qtyEl = $(`qty_${id}`);
-  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
-  const pagoDefault = 'efectivo';
-  showConfirmModal(item, qty, pagoDefault);
-}
-
-/* === Confirm modal logic === */
-function showConfirmModal(item, qty = 1, pago = 'efectivo'){
-  pendingSale = { item, qty, pago };
-  $('confirmProd').textContent = item.nombre;
-  $('confirmPrice').textContent = `Bs ${Number(item.precio).toFixed(2)}`;
-  $('confirmQty').value = qty;
-  $('confirmPago').value = pago || 'efectivo';
-  const m = $('confirmModal');
-  m.classList.add('show');
-  m.setAttribute('aria-hidden','false');
-
-  // asignar handlers
-  $('confirmCancel').onclick = ()=>{ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); pendingSale = null; };
-  $('confirmBtn').onclick = ()=>{ 
-    const q = Number($('confirmQty').value || 1);
-    const p = $('confirmPago').value || 'efectivo';
-    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
-    // invocar venta real
-    sendSale(item, q, p);
-    pendingSale = null;
-  };
-}
-
-/* === Helper modal de resultado === */
-function showResultModal(type, title, text, ms = 1800){
-  const modal = $('resultModal');
-  const icon = $('resultIcon');
-  const t = $('resultTitle');
-  const txt = $('resultText');
-
-  // set visuals
-  if(type === 'success'){
-    icon.className = 'result-icon success';
-    icon.innerHTML = `
-      <svg class="check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.14)" stroke-width="2" fill="transparent"/>
-        <path d="M6 12.2l3.2 3.2L18 7" stroke="#fff" stroke-width="2.2" fill="none"/>
-      </svg>`;
-  } else {
-    icon.className = 'result-icon error';
-    icon.innerHTML = `
-      <svg class="cross-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="transparent"/>
-        <line x1="8" y1="8" x2="16" y2="16" stroke="#fff" stroke-width="2.2"/>
-        <line x1="16" y1="8" x2="8" y2="16" stroke="#fff" stroke-width="2.2"/>
-      </svg>`;
-  }
-
-  t.textContent = title;
-  txt.textContent = text;
-
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden','false');
-
-  // auto hide
-  if(ms > 0){
-    clearTimeout(modal._hideTO);
-    modal._hideTO = setTimeout(()=>{
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
-    }, ms);
-  }
-}
-
-/* cerrar manual */
-$('resultClose')?.addEventListener('click', ()=>{
-  const modal = $('resultModal');
-  clearTimeout(modal._hideTO);
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden','true');
-});
-
-/* === REEMPLAZA sendSale por esta versión === */
-async function sendSale(item, qty, pago = "efectivo"){
-  if(!API_URL){
-    // si no hay API, igual guardamos la venta localmente (útil en campo)
-    addLastSale(item, qty, pago);
-    soundOK.currentTime = 0; soundOK.play();
-    showResultModal('success', 'Venta registrada (local)', 'La venta se guardó localmente porque no hay API.');
-    return;
-  }
-  if(!item){
-    soundERR.currentTime = 0;
-    soundERR.play();
-    showResultModal('error', 'Producto no encontrado', 'Reintenta o recarga el menú.');
-    return;
-  }
-
-  const form = new URLSearchParams();
-  form.append("action","registrar_venta");
-  form.append("producto_id", item.id);
-  form.append("producto_nombre", item.nombre);
-  form.append("cantidad", qty);
-  form.append("precio_unitario", item.precio);
-  form.append("total", item.precio * qty);
-  form.append("pago", pago);
-
-  try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: form.toString()
-    });
-
-    // intenta parsear JSON, si no parsea usar status
-    let j;
-    try { j = await res.json(); } catch(e){ j = null; }
-
-    if(res.ok && (j === null || j.ok === true || j.ok === undefined)){
-      // éxito
-      soundOK.currentTime = 0;
-      soundOK.play();
-
-      // AGREGAR A ÚLTIMAS VENTAS (local)
-      addLastSale(item, qty, pago);
-
-      showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
-      // actualizamos reporte (si corresponde)
-      updateReport();
-    } else {
-      // API respondió con error
-      console.error('API error', j);
-      soundERR.currentTime = 0;
-      soundERR.play();
-      showResultModal('error', 'Error en API', (j && (j.mensaje || j.message)) ? (j.mensaje || j.message) : 'La API no registró la venta.');
-    }
-  }catch(err){
-    console.error('sendSale error', err);
-    // en caso de fallo de conexión podemos guardar localmente para no perder la venta
-    addLastSale(item, qty, pago);
-    soundOK.currentTime = 0;
-    soundOK.play();
-    showResultModal('success', 'Venta registrada (offline)', 'No se pudo conectar con la API — venta guardada localmente.');
-  }
-}
-
-/* ===== REPORTE ===== */
-async function updateReport(){
-  if(!API_URL){
-    // mostrar reporte vacío si no hay api
-    $('reportInfo').textContent = 'Sin datos (configura API)';
-    $('reportTable').innerHTML = '';
-    return;
-  }
-  try{
-    const dias = $('selectDias').value || 7;
-    const r = await fetch(`${API_URL}?action=reporte&dias=${dias}`);
-    const j = await r.json();
-    $('reportInfo').textContent = `Ingresos: Bs ${Number(j.ingresos_totales||0).toFixed(2)}`;
-    $('reportTable').innerHTML = '<ul>' + (j.items||[]).map(it=>`<li>${it.nombre}: ${it.cantidad} (Bs ${Number(it.total||0).toFixed(2)})</li>`).join('') + '</ul>';
-  }catch(err){
-    console.error('updateReport err', err);
-    $('reportInfo').textContent = 'Error cargando reporte';
-    $('reportTable').innerHTML = '';
-  }
-}
-
-/* ===== CARGAR DESDE API (si se configuró) ===== */
-async function loadMenuFromApi(){
-  if(!API_URL) return;
-  try{
-    const r = await fetch(API_URL + '?action=menu');
-    const data = await r.json();
-    if(Array.isArray(data) && data.length>0){
-      // normalizar
-      MENU = data.map(it => ({
-        id: it.id ?? it.ID ?? it.producto_id ?? Math.random()*100000,
-        nombre: it.nombre ?? it.name ?? it.producto_nombre ?? '',
-        precio: Number(it.precio ?? it.precio_venta ?? it.price ?? 0),
-        categoria: it.categoria ?? it.category ?? '',
-        imagen: it.imagen ?? it.image ?? ''
-      }));
-      loadCats(); loadQuick(); renderMenu(); updateReport();
-      return;
-    }
-    // si la API respondió pero sin datos, dejamos DEFAULT_MENU
-    loadCats(); loadQuick(); renderMenu(); updateReport();
-  }catch(err){
-    console.error('loadMenuFromApi error', err);
-    toast('No se pudo cargar menú desde API (revisa URL)');
-    // dejamos MENU por defecto para que UI funcione
-    loadCats(); loadQuick(); renderMenu(); updateReport();
-  }
-}
-
-/* ===== EVENTOS ===== */
-$('search').addEventListener('input', renderMenu);
-$('filtrocategoria').addEventListener('change', renderMenu);
-$('metrica').addEventListener('change', renderMenu);
-$('btnRefrescar').addEventListener('click', renderMenu);
-
-$('quickSell').addEventListener('click', async ()=>{
-  const id = $('quickSelect').value;
-  const qty = Number($('quickQty').value || 1);
-  const pago = $('quickPago').value || 'efectivo';
-  const item = MENU.find(x=>String(x.id)===String(id));
-  if(!item) return toast('Selecciona un producto en Registro rápido');
-  showConfirmModal(item, qty, pago);
-});
-
-$('selectDias').addEventListener('change', updateReport);
-
-/* CONFIG toggle */
-$('btnConfig').addEventListener('click', ()=>{
-  const panel = $('configPanel');
-  const is = panel.style.display === 'block';
-  panel.style.display = is ? 'none' : 'block';
-  $('btnConfig').setAttribute('aria-expanded', (!is).toString());
-});
-
-/* guardar / probar API */
-$('guardarApi').addEventListener('click', ()=>{
-  const v = $('apiUrl').value.trim();
-  if(!v){ toast('Pega la URL de tu Apps Script'); return; }
-  API_URL = v;
-  localStorage.setItem('api_url_rest', v);
-  toast('API guardada');
-  loadMenuFromApi();
-});
-
-$('probarApi').addEventListener('click', async ()=>{
-  const v = $('apiUrl').value.trim() || API_URL;
-  if(!v){ toast('No hay URL'); return; }
-  try{
-    const r = await fetch(v + '?action=menu');
-    toast(r.ok ? 'API OK' : 'API respondió con error');
-  }catch(e){ console.error(e); toast('Error al probar API'); }
-});
-
-$('undoLast').addEventListener('click', ()=>{ undoLastSale(); });
-
-/* quick init, mostrar valores guardados y cargar menu local o desde API */
-(function init(){
-  // llenar campos
-  if($('apiUrl')) $('apiUrl').value = API_URL;
-  loadCats();
-  loadQuick();
-  renderMenu();
-  updateReport();
-  renderLastSales(); // inicializar listado de últimas ventas
-  // si habia API guardada, intentar cargar desde ella
-  if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
-})();
-
-/* ======= COMANDAS: LÓGICA (AÑADIDO) ======= */
+/* ===== COMANDAS: LÓGICA (AÑADIDO) ======= */
 let ORDERS = JSON.parse(localStorage.getItem('orders_list') || '[]');
 
 function saveOrdersToStorage(){
@@ -811,10 +418,8 @@ async function closeOrder(orderId, pago='efectivo'){
   if(!order) return toast('Comanda no encontrada');
   if(order.items.length===0) return toast('Comanda vacía');
 
-  // enviar cada item como venta
   for(const it of order.items){
     const productoLike = { id: it.producto_id, nombre: it.nombre, precio: it.precio };
-    // espera por si quieres control de red. Puedes quitar await si prefieres paralelo.
     await sendSale(productoLike, it.qty, pago);
   }
 
@@ -841,17 +446,439 @@ window.addToOrder = function(orderId, productId, qty=1){
   addItemToOrder(orderId, prod, qty);
 };
 
-// eventos botones comanda
-$('createOrderBtn')?.addEventListener('click', ()=> {
-  const v = $('newOrderName').value.trim();
-  createOrder(v);
-  $('newOrderName').value = '';
+/* ===== ÚLTIMAS VENTAS (local) ===== */
+function addLastSale(item, qty, pago){
+  const total = Number(item.precio) * Number(qty);
+  const entry = {
+    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    nombre: item.nombre,
+    qty: Number(qty),
+    total: total,
+    pago: (pago || "efectivo").toLowerCase(),
+    anulada: false
+  };
+  lastSales.unshift(entry);
+  lastSales = lastSales.slice(0,10);
+  localStorage.setItem("last_sales", JSON.stringify(lastSales));
+  renderLastSales();
+}
+
+function renderLastSales(){
+  const cont = $('lastSales');
+  if(!cont) return;
+  if(lastSales.length === 0){
+    cont.innerHTML = "<small>No hay ventas aún</small>";
+    return;
+  }
+  cont.innerHTML = lastSales.map((v, idx) => `
+    <div class="last-sale ${v.anulada ? 'anulada' : ''}" data-idx="${idx}">
+      <small>${v.hora}</small>
+      <div class="nombre">${v.nombre} ${v.anulada ? '(ANULADA)' : ''} x${v.qty}</div>
+      <div class="pago ${v.pago}">${v.pago.toUpperCase()}</div>
+      <div><strong>Bs ${Number(v.total).toFixed(2)}</strong></div>
+    </div>
+  `).join('');
+}
+
+/* DESHACER ÚLTIMA VENTA (anulación) */
+async function undoLastSale(){
+  if(!lastSales || lastSales.length === 0){
+    toast('No hay ventas para deshacer');
+    return;
+  }
+  const last = lastSales[0];
+  const anulacion = {
+    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    nombre: last.nombre,
+    qty: -Math.abs(last.qty || 1),
+    total: -Math.abs(last.total || 0),
+    pago: last.pago,
+    anulada: true
+  };
+  lastSales.unshift(anulacion);
+  lastSales = lastSales.slice(0,10);
+  localStorage.setItem("last_sales", JSON.stringify(lastSales));
+  renderLastSales();
+
+  if(API_URL){
+    try{
+      const form = new URLSearchParams();
+      form.append('action','anular_venta');
+      form.append('producto_nombre', last.nombre);
+      form.append('cantidad', last.qty);
+      form.append('total', last.total);
+      form.append('pago', last.pago);
+      await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form.toString() });
+    }catch(e){
+      console.warn('No se pudo notificar anulación a API', e);
+    }
+  }
+
+  soundERR.currentTime = 0;
+  soundERR.play();
+  toast('Última venta anulada');
+}
+
+/* ===== Helpers UI ===== */
+function toast(msg){
+  const t = $('toast'); t.textContent=msg; t.style.display='block';
+  setTimeout(()=> t.style.display='none', 2400);
+}
+
+/* determina ruta de imagen — si item.imagen existe se usa */
+function imgFor(item){
+  if(item.imagen) return `Imagenes/${item.imagen}`;
+  const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
+  const MAP = {
+  chicharron: "chicharron.jpg",
+  escabeche: "escabeche.jpg",
+  chorizo: "chorizo.jpg",
+  fricase: "fricase.webp",
+  chichadoble: "chicha.jpg",
+  chichalata: "chicha.jpg",
+  chichabalde: "chicha.jpg",
+  chichaalojadoble: "chichaMorada.webp",
+  chichaalojalata: "chichaMorada.webp",
+  chichaalojabalde: "chichaMorada.webp",
+  cervezaunidad: "cerveza.jpg",
+  refresco2l: "Refresco2L.webp",
+  refresco3l: "3L.webp"
+  };
+  return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
+}
+
+/* ===== RENDER MENU ===== */
+function renderMenu(){
+  const q = ($('search').value||"").toLowerCase();
+  const cat = $('filtrocategoria').value || "";
+  const met = $('metrica').value || "precio";
+
+  let list = MENU.slice();
+  if(q) list = list.filter(i => (i.nombre||"").toLowerCase().includes(q));
+  if(cat) list = list.filter(i => i.categoria === cat);
+
+  if(met === 'precio') list.sort((a,b)=> a.precio - b.precio);
+  if(met === 'nombre') list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre));
+
+  $('grid').innerHTML = list.map(i => `
+    <div class="card" id="card_${i.id}">
+      <img src="${imgFor(i)}" alt="${i.nombre}" onerror="this.onerror=null;this.src='Imagenes/fondoWEB.avif'">
+      <div class="title">${i.nombre}</div>
+      <div class="cat">${i.categoria || ''}</div>
+      <div class="price">Bs ${Number(i.precio).toFixed(2)}</div>
+      <div class="row">
+        <input id="qty_${i.id}" type="number" value="1" min="1">
+        <button onclick="addToComanda(${i.id})">Añadir a comanda</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ===== SELECTS ===== */
+function loadCats(){
+  const cats = [...new Set(MENU.map(x=>x.categoria).filter(Boolean))];
+  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
+
+/* ===== VENTAS ===== */
+/* ahora sell está pensado para ventas directas (si alguna vez las quieres) */
+/* pero con opción B usamos principalmente comanda: addToComanda() */
+
+function sell(id){
+  const item = MENU.find(x=>String(x.id)===String(id));
+  if(!item) return toast('Producto no encontrado');
+  const qtyEl = $(`qty_${id}`);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+  const pagoDefault = 'efectivo';
+  showConfirmModal({ mode:'sell', item, qty, pago: pagoDefault });
+}
+
+/* === Mostrar modal para añadir a comanda o vender (reusa confirm modal) === */
+function showConfirmModal(context){
+  // context: { mode:'sell'|'add', item, qty, pago }
+  pendingSale = context;
+  const item = context.item;
+  $('confirmProd').textContent = (context.mode === 'add' ? 'Añadir a comanda: ' : 'Confirmar venta: ') + item.nombre;
+  $('confirmPrice').textContent = `Bs ${Number(item.precio).toFixed(2)}`;
+  $('confirmQty').value = context.qty || 1;
+
+  // llenar selects de comandas
+  const orderSelect = $('confirmOrder');
+  orderSelect.innerHTML = '';
+  if(ORDERS.length === 0){
+    orderSelect.innerHTML = '<option value="">-- No hay comandas --</option>';
+  } else {
+    orderSelect.innerHTML = ORDERS.map(o=>`<option value="${o.id}">${o.name}</option>`).join('');
+    // seleccionar la más reciente por defecto
+    orderSelect.value = ORDERS[0].id;
+  }
+
+  // mostrar/ocultar pago según modo
+  if(context.mode === 'add'){
+    $('confirmOrderLabel').style.display = 'block';
+    $('confirmOrder').style.display = 'block';
+    $('confirmPagoLabel').style.display = 'none';
+    $('confirmPago').style.display = 'none';
+  } else {
+    $('confirmOrderLabel').style.display = 'none';
+    $('confirmOrder').style.display = 'none';
+    $('confirmPagoLabel').style.display = 'block';
+    $('confirmPago').style.display = 'block';
+    $('confirmPago').value = context.pago || 'efectivo';
+  }
+
+  const m = $('confirmModal');
+  m.classList.add('show');
+  m.setAttribute('aria-hidden','false');
+
+  $('confirmCancel').onclick = ()=>{ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); pendingSale = null; };
+
+  $('confirmBtn').onclick = async ()=>{
+    const q = Number($('confirmQty').value || 1);
+    if(pendingSale.mode === 'add'){
+      const orderId = $('confirmOrder').value;
+      if(!orderId){
+        alert('Crea una comanda primero');
+        return;
+      }
+      addItemToOrder(orderId, pendingSale.item, q);
+      const modal = $('confirmModal'); modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
+      pendingSale = null;
+    } else {
+      const p = $('confirmPago').value || 'efectivo';
+      const modal = $('confirmModal'); modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
+      await sendSale(pendingSale.item, q, p);
+      pendingSale = null;
+    }
+  };
+}
+
+/* helper que abre modal en modo 'add' para el producto */
+function addToComanda(productId){
+  const item = MENU.find(x=>String(x.id)===String(productId));
+  if(!item) return toast('Producto no encontrado');
+  const qtyEl = $(`qty_${productId}`);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+  // si no hay comandas, pedir crear
+  if(ORDERS.length === 0){
+    if(!confirm('No hay comandas. ¿Crear una ahora?')) return;
+    createOrder(prompt('Nombre o mesa (ej: Mesa 1)', 'Mesa 1') || 'Mesa 1');
+  }
+  showConfirmModal({ mode:'add', item, qty });
+}
+
+/* === Helper modal de resultado === */
+function showResultModal(type, title, text, ms = 1800){
+  const modal = $('resultModal');
+  const icon = $('resultIcon');
+  const t = $('resultTitle');
+  const txt = $('resultText');
+
+  if(type === 'success'){
+    icon.className = 'result-icon success';
+    icon.innerHTML = `
+      <svg class="check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.14)" stroke-width="2" fill="transparent"/>
+        <path d="M6 12.2l3.2 3.2L18 7" stroke="#fff" stroke-width="2.2" fill="none"/>
+      </svg>`;
+  } else {
+    icon.className = 'result-icon error';
+    icon.innerHTML = `
+      <svg class="cross-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="transparent"/>
+        <line x1="8" y1="8" x2="16" y2="16" stroke="#fff" stroke-width="2.2"/>
+        <line x1="16" y1="8" x2="8" y2="16" stroke="#fff" stroke-width="2.2"/>
+      </svg>`;
+  }
+
+  t.textContent = title;
+  txt.textContent = text;
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+
+  if(ms > 0){
+    clearTimeout(modal._hideTO);
+    modal._hideTO = setTimeout(()=>{
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+    }, ms);
+  }
+}
+
+/* cerrar manual */
+$('resultClose')?.addEventListener('click', ()=>{
+  const modal = $('resultModal');
+  clearTimeout(modal._hideTO);
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
 });
 
-$('clearOrdersLocal')?.addEventListener('click', ()=> { if(confirm('Limpiar comandas locales? Esto no afecta ventas registradas.')) clearOrdersLocal(); });
+/* === REEMPLAZA sendSale por esta versión (incluye guardado local si no hay API) === */
+async function sendSale(item, qty, pago = "efectivo"){
+  if(!API_URL){
+    addLastSale(item, qty, pago);
+    soundOK.currentTime = 0; soundOK.play();
+    showResultModal('success', 'Venta registrada (local)', 'La venta se guardó localmente porque no hay API.');
+    return;
+  }
+  if(!item){
+    soundERR.currentTime = 0;
+    soundERR.play();
+    showResultModal('error', 'Producto no encontrado', 'Reintenta o recarga el menú.');
+    return;
+  }
 
-// inicializar render ordenes
-renderOrders();
+  const form = new URLSearchParams();
+  form.append("action","registrar_venta");
+  form.append("producto_id", item.id);
+  form.append("producto_nombre", item.nombre);
+  form.append("cantidad", qty);
+  form.append("precio_unitario", item.precio);
+  form.append("total", item.precio * qty);
+  form.append("pago", pago);
+
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body: form.toString()
+    });
+
+    let j;
+    try { j = await res.json(); } catch(e){ j = null; }
+
+    if(res.ok && (j === null || j.ok === true || j.ok === undefined)){
+      soundOK.currentTime = 0;
+      soundOK.play();
+
+      addLastSale(item, qty, pago);
+
+      showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
+      updateReport();
+    } else {
+      console.error('API error', j);
+      soundERR.currentTime = 0;
+      soundERR.play();
+      showResultModal('error', 'Error en API', (j && (j.mensaje || j.message)) ? (j.mensaje || j.message) : 'La API no registró la venta.');
+    }
+  }catch(err){
+    console.error('sendSale error', err);
+    addLastSale(item, qty, pago);
+    soundOK.currentTime = 0;
+    soundOK.play();
+    showResultModal('success', 'Venta registrada (offline)', 'No se pudo conectar con la API — venta guardada localmente.');
+  }
+}
+
+/* ===== REPORTE ===== */
+async function updateReport(){
+  if(!API_URL){
+    $('reportInfo').textContent = 'Sin datos (configura API)';
+    $('reportTable').innerHTML = '';
+    return;
+  }
+  try{
+    const dias = $('selectDias').value || 7;
+    const r = await fetch(`${API_URL}?action=reporte&dias=${dias}`);
+    const j = await r.json();
+    $('reportInfo').textContent = `Ingresos: Bs ${Number(j.ingresos_totales||0).toFixed(2)}`;
+    $('reportTable').innerHTML = '<ul>' + (j.items||[]).map(it=>`<li>${it.nombre}: ${it.cantidad} (Bs ${Number(it.total||0).toFixed(2)})</li>`).join('') + '</ul>';
+  }catch(err){
+    console.error('updateReport err', err);
+    $('reportInfo').textContent = 'Error cargando reporte';
+    $('reportTable').innerHTML = '';
+  }
+}
+
+/* ===== CARGAR DESDE API (si se configuró) ===== */
+async function loadMenuFromApi(){
+  if(!API_URL) return;
+  try{
+    const r = await fetch(API_URL + '?action=menu');
+    const data = await r.json();
+    if(Array.isArray(data) && data.length>0){
+      MENU = data.map(it => ({
+        id: it.id ?? it.ID ?? it.producto_id ?? Math.random()*100000,
+        nombre: it.nombre ?? it.name ?? it.producto_nombre ?? '',
+        precio: Number(it.precio ?? it.precio_venta ?? it.price ?? 0),
+        categoria: it.categoria ?? it.category ?? '',
+        imagen: it.imagen ?? it.image ?? ''
+      }));
+      loadCats(); loadQuick(); renderMenu(); updateReport();
+      return;
+    }
+    loadCats(); loadQuick(); renderMenu(); updateReport();
+  }catch(err){
+    console.error('loadMenuFromApi error', err);
+    toast('No se pudo cargar menú desde API (revisa URL)');
+    loadCats(); loadQuick(); renderMenu(); updateReport();
+  }
+}
+
+/* ===== EVENTOS ===== */
+$('search').addEventListener('input', renderMenu);
+$('filtrocategoria').addEventListener('change', renderMenu);
+$('metrica').addEventListener('change', renderMenu);
+$('btnRefrescar').addEventListener('click', renderMenu);
+
+$('quickSell').addEventListener('click', async ()=>{
+  const id = $('quickSelect').value;
+  const qty = Number($('quickQty').value || 1);
+  const item = MENU.find(x=>String(x.id)===String(id));
+  if(!item) return toast('Selecciona un producto en Registro rápido');
+  // si no hay comandas, crear una rápida
+  if(ORDERS.length === 0){
+    if(!confirm('No hay comandas. Crear una ahora?')) return;
+    createOrder(prompt('Nombre o mesa (ej: Mesa 1)', 'Mesa 1') || 'Mesa 1');
+  }
+  // abrir modal para añadir
+  showConfirmModal({ mode:'add', item, qty });
+});
+
+$('selectDias').addEventListener('change', updateReport);
+
+/* CONFIG toggle */
+$('btnConfig').addEventListener('click', ()=>{
+  const panel = $('configPanel');
+  const is = panel.style.display === 'block';
+  panel.style.display = is ? 'none' : 'block';
+  $('btnConfig').setAttribute('aria-expanded', (!is).toString());
+});
+
+/* guardar / probar API */
+$('guardarApi').addEventListener('click', ()=>{
+  const v = $('apiUrl').value.trim();
+  if(!v){ toast('Pega la URL de tu Apps Script'); return; }
+  API_URL = v;
+  localStorage.setItem('api_url_rest', v);
+  toast('API guardada');
+  loadMenuFromApi();
+});
+
+$('probarApi').addEventListener('click', async ()=>{
+  const v = $('apiUrl').value.trim() || API_URL;
+  if(!v){ toast('No hay URL'); return; }
+  try{
+    const r = await fetch(v + '?action=menu');
+    toast(r.ok ? 'API OK' : 'API respondió con error');
+  }catch(e){ console.error(e); toast('Error al probar API'); }
+});
+
+$('undoLast').addEventListener('click', ()=>{ undoLastSale(); });
+
+/* quick init, mostrar valores guardados y cargar menu local o desde API */
+(function init(){
+  if($('apiUrl')) $('apiUrl').value = API_URL;
+  loadCats();
+  loadQuick();
+  renderMenu();
+  updateReport();
+  renderLastSales();
+  renderOrders();
+  if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
+})();
 
 </script>
 </body>
