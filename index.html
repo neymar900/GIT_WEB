@@ -485,6 +485,8 @@
       background: white;
       font-weight: 700;
       font-size: 18px;
+      color: #1e293b;
+      /* Fix: Numbers were white and invisible */
       cursor: pointer;
       transition: all 0.2s;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -862,18 +864,18 @@
       localStorage.setItem("last_sales", JSON.stringify(lastSales));
       renderLastSales();
 
-      // intentar notificar a la API (si existe) — opcional y no bloqueante
+      // intentar notificar a la API (si existe) — Usamos registrar_venta con valores negativos para máxima compatibilidad
       if (API_URL) {
         try {
           const form = new URLSearchParams();
-          form.append('action', 'anular_venta');
-          form.append('producto_nombre', last.nombre);
-          form.append('cantidad', last.qty);
-          form.append('total', last.total);
+          form.append('action', 'registrar_venta');
+          form.append('producto_nombre', last.nombre + ' (ANULACIÓN)');
+          form.append('cantidad', -Math.abs(last.qty));
+          form.append('precio_unitario', last.total / last.qty);
+          form.append('total', -Math.abs(last.total));
           form.append('pago', last.pago);
           await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
         } catch (e) {
-          // ignore — es solo intento
           console.warn('No se pudo notificar anulación a API', e);
         }
       }
@@ -882,6 +884,9 @@
       soundERR.currentTime = 0;
       soundERR.play();
       toast('Última venta anulada');
+
+      // Sincronizar reporte y dashboard tras anulación
+      setTimeout(() => updateReport(), 500);
     }
 
     /* ===== Helpers UI ===== */
