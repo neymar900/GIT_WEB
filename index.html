@@ -1,376 +1,835 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>POS – Restaurante Familiar</title>
-<style>
-:root{
-  --accent:#e85a13;
-  --muted:#6b7280;
-  --card:#fff;
-}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>POS – Restaurante Familiar</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --accent: #e85a13;
+      --accent-light: rgba(232, 90, 19, 0.1);
+      --muted: #64748b;
+      --card: #ffffff;
+      --bg: #f8fafc;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --info: #0ea5e9;
+    }
 
-/* base */
-html,body{height:100%;margin:0}
-body{
-  font-family: "Inter", "Segoe UI", Arial, sans-serif;
-  background:
-    linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)),
-    url("Imagenes/fondoWEB.avif");
-  background-size:cover;
-  background-position:center;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  color:#111;
-}
-.container{max-width:1180px;margin:28px auto;padding:0 14px}
+    /* base */
+    html,
+    body {
+      height: 100%;
+      margin: 0
+    }
 
-/* header */
-.header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.brand{color:var(--accent);font-weight:800;font-size:22px}
-.config-btn{margin-left:auto;background:#e7eef3;color:#333;border-radius:10px;padding:8px 12px;cursor:pointer; border:0}
+    body {
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)),
+        url("Imagenes/fondoWEB.avif");
+      background-size: cover;
+      background-position: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color: #111;
+    }
 
-/* panels & controls */
-.panel{background:rgba(255,255,255,0.96);padding:12px;border-radius:12px;margin-bottom:16px;box-shadow:0 10px 26px rgba(0,0,0,.06)}
-.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input,select{padding:9px;border-radius:8px;border:1px solid #e6e9ee}
-button, .btn{background:var(--accent);color:#fff;border:0;padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:700}
-.btn.sec{background:#cfd6df;color:#111}
+    .container {
+      max-width: 1180px;
+      margin: 28px auto;
+      padding: 0 14px
+    }
 
-/* grid */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
-.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 10px 26px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:8px}
-.card img{width:100%;height:140px;object-fit:cover;border-radius:10px;background:#fafafa}
-.title{font-weight:800}
-.cat{display:inline-block;background:#fff5ef;color:var(--accent);padding:5px 8px;border-radius:999px;font-size:12px}
+    /* header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px
+    }
 
-/* rows & small */
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.row input[type="number"]{width:80px;padding:8px;border-radius:8px;border:1px solid #e6e9ee}
+    .brand {
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 22px
+    }
 
-/* Section large */
-.section{background:rgba(255,255,255,0.96);padding:16px;border-radius:12px;margin-top:18px;box-shadow:0 10px 26px rgba(0,0,0,.06)}
+    .config-btn {
+      margin-left: auto;
+      background: #e7eef3;
+      color: #333;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      border: 0
+    }
 
-/* toast */
-.toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 12px;border-radius:8px;display:none;z-index:9999}
+    /* panels & controls */
+    .panel {
+      background: rgba(255, 255, 255, 0.96);
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .06)
+    }
 
-/* responsive */
-@media (max-width:720px){
- .grid{grid-template-columns:1fr}
- .brand{font-size:18px}
-}
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center
+    }
 
-/* ---------- Modal resultado (éxito / error) ---------- */
-.result-modal {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(6,6,6,0.35);
-  z-index: 12000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .18s ease;
-}
-.result-modal.show { opacity: 1; pointer-events: auto; }
+    input,
+    select {
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ee
+    }
 
-.result-card{
-  background: #fff;
-  border-radius: 12px;
-  padding: 22px 26px;
-  min-width: 260px;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(2,6,23,0.25);
-  display:flex;
-  gap:14px;
-  align-items:center;
-  transform: translateY(10px) scale(.98);
-  transition: transform .18s ease;
-}
-.result-modal.show .result-card{ transform: translateY(0) scale(1); }
+    button,
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      padding: 9px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700
+    }
 
-.result-icon{
-  width:56px; height:56px; border-radius:999px;
-  display:grid;place-items:center;
-  flex:0 0 56px;
-  box-shadow: inset 0 -6px 20px rgba(0,0,0,0.04);
-}
-.result-icon.success{ background: linear-gradient(180deg,#16a34a,#0ea05e); color:#fff; }
-.result-icon.error{ background: linear-gradient(180deg,#ef4444,#f05a4b); color:#fff; }
+    .btn.sec {
+      background: #cfd6df;
+      color: #111
+    }
 
-.result-body{ flex:1 }
-.result-title{ font-weight:800; font-size:16px; margin-bottom:6px }
-.result-text{ color:#475569; font-size:14px }
+    /* grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px
+    }
 
-.check-svg path {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: drawCheck .45s ease forwards .12s;
-  stroke-linecap:round;
-}
-@keyframes drawCheck {
-  to { stroke-dashoffset: 0; }
-}
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
 
-.cross-svg line {
-  stroke-dasharray: 40;
-  stroke-dashoffset: 40;
-  animation: drawCross .36s ease forwards .12s;
-  stroke-linecap:round;
-}
-@keyframes drawCross { to { stroke-dashoffset: 0; } }
+    .card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #fafafa
+    }
 
-.result-close{
-  margin-left:12px;background:transparent;border:0;color:#8892a3;font-weight:700;cursor:pointer;
-}
+    .title {
+      font-weight: 800
+    }
 
-/* ====== Confirm modal (antes de vender) ====== */
-.confirm-modal { position: fixed; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(6,6,6,0.28); z-index:12500; opacity:0; pointer-events:none; transition: opacity .15s ease; }
-.confirm-modal.show { opacity:1; pointer-events:auto; }
-.confirm-card { background:#fff; padding:18px; border-radius:12px; width:360px; box-shadow:0 20px 40px rgba(0,0,0,.18); }
-.confirm-row{ display:flex; gap:8px; align-items:center; margin-top:8px; }
-.confirm-card label{ font-weight:700; font-size:13px; display:block; margin-bottom:6px; }
-.confirm-card input[type="number"]{ width:100px; padding:8px; border-radius:8px; border:1px solid #e6e9ee; }
-.confirm-card select{ padding:8px; border-radius:8px; border:1px solid #e6e9ee; }
+    .cat {
+      display: inline-block;
+      background: #fff5ef;
+      color: var(--accent);
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 12px
+    }
 
-/* ====== Últimas ventas (panel) ====== */
-.last-sale{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px dashed #eee;font-size:14px}
-.last-sale small{color:#666;margin-right:8px;width:60px}
-.last-sale .nombre{flex:1;padding:0 8px}
-.last-sale .pago{font-weight:700;margin-right:8px}
-.pago.qr{ color:#0ea5e9 }
-.pago.efectivo{ color:#16a34a }
-.pago.tarjeta{ color:#f97316 }
-.last-sale.anulada { opacity:0.7; text-decoration:line-through; color:#a33; }
+    /* rows & small */
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px
+    }
 
-</style>
+    .row input[type="number"] {
+      width: 80px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ee
+    }
+
+    /* Section large */
+    .section {
+      background: rgba(255, 255, 255, 0.96);
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 18px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .06)
+    }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #111;
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 8px;
+      display: none;
+      z-index: 9999
+    }
+
+    /* responsive */
+    @media (max-width:720px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+
+      .brand {
+        font-size: 18px
+      }
+    }
+
+    /* ---------- Modal resultado (éxito / error) ---------- */
+    .result-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6, 6, 6, 0.35);
+      z-index: 12000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+
+    .result-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px 26px;
+      min-width: 260px;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(2, 6, 23, 0.25);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      transform: translateY(10px) scale(.98);
+      transition: transform .18s ease;
+    }
+
+    .result-modal.show .result-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .result-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 56px;
+      box-shadow: inset 0 -6px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .result-icon.success {
+      background: linear-gradient(180deg, #16a34a, #0ea05e);
+      color: #fff;
+    }
+
+    .result-icon.error {
+      background: linear-gradient(180deg, #ef4444, #f05a4b);
+      color: #fff;
+    }
+
+    .result-body {
+      flex: 1
+    }
+
+    .result-title {
+      font-weight: 800;
+      font-size: 16px;
+      margin-bottom: 6px
+    }
+
+    .result-text {
+      color: #475569;
+      font-size: 14px
+    }
+
+    .check-svg path {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawCheck .45s ease forwards .12s;
+      stroke-linecap: round;
+    }
+
+    @keyframes drawCheck {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .cross-svg line {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: drawCross .36s ease forwards .12s;
+      stroke-linecap: round;
+    }
+
+    @keyframes drawCross {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .result-close {
+      margin-left: 12px;
+      background: transparent;
+      border: 0;
+      color: #8892a3;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ====== Confirm modal (antes de vender) ====== */
+    .confirm-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6, 6, 6, 0.28);
+      z-index: 12500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease;
+    }
+
+    .confirm-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .confirm-card {
+      background: #fff;
+      padding: 18px;
+      border-radius: 12px;
+      width: 360px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, .18);
+    }
+
+    .confirm-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .confirm-card label {
+      font-weight: 700;
+      font-size: 13px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .confirm-card input[type="number"] {
+      width: 100px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ee;
+    }
+
+    .confirm-card select {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #e6e9ee;
+    }
+
+    /* ====== Últimas ventas (panel) ====== */
+    .last-sale {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 6px;
+      border-bottom: 1px dashed #eee;
+      font-size: 14px
+    }
+
+    .last-sale small {
+      color: #666;
+      margin-right: 8px;
+      width: 60px
+    }
+
+    .last-sale .nombre {
+      flex: 1;
+      padding: 0 8px
+    }
+
+    .last-sale .pago {
+      font-weight: 700;
+      margin-right: 8px
+    }
+
+    .pago.qr {
+      color: #0ea5e9
+    }
+
+    .pago.efectivo {
+      color: #16a34a
+    }
+
+    .pago.tarjeta {
+      color: #f97316
+    }
+
+    .last-sale.anulada {
+      opacity: 0.7;
+      text-decoration: line-through;
+      color: #a33;
+    }
+
+    /* Dashboard Styles */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid #f1f5f9;
+    }
+
+    .stat-card .label {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .stat-card .trend {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+
+    .trend.up {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 24px;
+      border: 1px solid #f1f5f9;
+    }
+
+    /* Calculator Styles */
+    .calc-container {
+      background: #f1f5f9;
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .calc-display {
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: right;
+      font-size: 24px;
+      font-weight: 800;
+      font-family: monospace;
+      border: 1px solid #e2e8f0;
+      min-height: 40px;
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .calc-btn {
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      background: white;
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .calc-btn:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+
+    .calc-btn.op {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .calc-btn.action {
+      background: var(--accent);
+      color: white;
+    }
+  </style>
 </head>
+
 <body>
-<div class="container">
+  <div class="container">
 
-  <div class="header">
-    <div class="brand">🍽 POS – Restaurante Familiar</div>
-    <button id="btnConfig" class="config-btn" aria-expanded="false">⚙ Configuración</button>
-  </div>
-
-  <!-- filtros -->
-  <div class="panel">
-    <div class="controls">
-      <input id="search" placeholder="Buscar producto..." />
-      <select id="filtrocategoria"><option value="">Todas</option></select>
-      <select id="metrica">
-        <option value="precio">Ordenar por precio</option>
-        <option value="nombre">Ordenar por nombre</option>
-      </select>
-      <button id="btnRefrescar" class="btn sec">Actualizar</button>
-    </div>
-  </div>
-
-  <!-- productos -->
-  <div id="grid" class="grid"></div>
-
-  <!-- registro rapido -->
-  <div class="section" style="margin-top:18px">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <select id="quickSelect" style="min-width:240px;padding:9px;border-radius:8px;border:1px solid #e6e9ee"></select>
-      <input id="quickQty" type="number" value="1" min="1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
-      <select id="quickPago" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="qr">QR</option>
-      </select>
-      <button id="quickSell" class="btn">Vender</button>
-    </div>
-  </div>
-
-  <!-- reporte -->
-  <div class="section">
-    <h3 style="margin:0 0 8px 0">Reporte</h3>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <select id="selectDias" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
-        <option value="7">Últimos 7 días</option>
-        <option value="30">Últimos 30 días</option>
-      </select>
-      <div id="reportInfo" style="font-weight:700;color:var(--accent)"></div>
-    </div>
-    <div id="reportTable" style="margin-top:12px"></div>
-  </div>
-
-  <!-- ===== COMANDAS ABIERTAS (AÑADIDO) ===== -->
-  <div class="section" id="ordersSection" style="margin-top:18px">
-    <h3 style="margin:0 0 8px 0">Comandas abiertas</h3>
-
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-      <input id="newOrderName" placeholder="Nombre o Mesa (ej: Mesa 4)" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
-      <button id="createOrderBtn" class="btn">Crear comanda</button>
-      <button id="clearOrdersLocal" class="btn sec">Limpiar comandas (local)</button>
-      <small style="color:#666;margin-left:8px">Las comandas abiertas se guardan localmente.</small>
+    <div class="header">
+      <div class="brand">🍽 POS – Restaurante Familiar</div>
+      <button id="btnConfig" class="config-btn" aria-expanded="false">⚙ Configuración</button>
     </div>
 
-    <div id="ordersList" style="min-height:40px"></div>
-  </div>
-  <!-- ===== FIN COMANDAS ABIERTAS ===== -->
-
-  <!-- ÚLTIMAS VENTAS -->
-  <div class="section">
-    <h3 style="margin:0 0 8px 0">Últimas ventas</h3>
-    <div id="lastSales" style="min-height:40px;color:#333"></div>
-    <div style="margin-top:10px">
-      <button id="undoLast" class="btn sec">Deshacer última venta</button>
-      <small style="margin-left:8px;color:#666">Deshace la venta más reciente (anula y guarda registro de anulación)</small>
-    </div>
-  </div>
-
-  <!-- panel de configuración (oculto por defecto) -->
-  <div id="configPanel" class="section" style="display:none;margin-top:18px">
-    <h3 style="margin-top:0">Configuración API</h3>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="apiUrl" placeholder="Pega tu URL Apps Script (Web app) - termina en /exec" style="flex:1;padding:9px;border-radius:8px;border:1px solid #e6e9ee" />
-      <button id="guardarApi" class="btn">Guardar</button>
-      <button id="probarApi" class="btn sec">Probar</button>
-    </div>
-    <div style="margin-top:8px;color:var(--muted);font-size:13px">La URL se guarda en este navegador (localStorage). Si cambias de equipo pega la URL de nuevo.</div>
-  </div>
-
-</div>
-
-<div id="toast" class="toast"></div>
-
-<!-- Confirm modal -->
-<div id="confirmModal" class="confirm-modal" aria-hidden="true" role="dialog">
-  <div class="confirm-card" role="document">
-    <div style="font-weight:800" id="confirmProd">Confirmar venta</div>
-    <div style="margin-top:6px;color:#666" id="confirmPrice"></div>
-
-    <div class="confirm-row" style="margin-top:12px">
-      <div>
-        <label>Cantidad</label>
-        <input id="confirmQty" type="number" min="1" value="1">
+    <!-- filtros -->
+    <div class="panel">
+      <div class="controls">
+        <input id="search" placeholder="Buscar producto..." />
+        <select id="filtrocategoria">
+          <option value="">Todas</option>
+        </select>
+        <select id="metrica">
+          <option value="precio">Ordenar por precio</option>
+          <option value="nombre">Ordenar por nombre</option>
+        </select>
+        <button id="btnRefrescar" class="btn sec">Actualizar</button>
       </div>
-      <div style="flex:1">
-        <label>Pago</label>
-        <select id="confirmPago" style="width:100%">
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="section" id="dashboardSection">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <h3 style="margin:0">Dashboard de Ventas</h3>
+        <button onclick="toggleDashboard()" class="btn sec">Ver/Ocultar Gráficos</button>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="label">Total Hoy</div>
+          <div id="statToday" class="value">Bs 0.00</div>
+          <div class="trend up">Hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Ventas Hoy</div>
+          <div id="statCount" class="value">0</div>
+          <div class="trend up" style="background:#e0f2fe; color:#075985">Transacciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Producto Estrella</div>
+          <div id="statTopProd" class="value">-</div>
+          <div class="trend up" style="background:#fef3c7; color:#92400e">Más vendido</div>
+        </div>
+      </div>
+
+      <div id="dashboardCharts" style="display:none">
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr))">
+          <div class="chart-container">
+            <h4 style="margin-top:0">Ventas por Categoría</h4>
+            <canvas id="chartCategories"></canvas>
+          </div>
+          <div class="chart-container">
+            <h4 style="margin-top:0">Ventas (Últimos 7 días)</h4>
+            <canvas id="chartHistory"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULADORA RÁPIDA -->
+    <div class="panel" style="background: linear-gradient(135deg, #1e293b, #334155); color: white;">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <h4 style="margin:0">Calculadora de Cambio</h4>
+          <small style="opacity:0.8">Calcula rápido el vuelto para el cliente</small>
+        </div>
+        <button onclick="openCalculator()" class="btn" style="background:rgba(255,255,255,0.2)">Abrir
+          Calculadora</button>
+      </div>
+    </div>
+
+    <!-- productos -->
+    <div id="grid" class="grid"></div>
+
+    <!-- registro rapido -->
+    <div class="section" style="margin-top:18px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="quickSelect"
+          style="min-width:240px;padding:9px;border-radius:8px;border:1px solid #e6e9ee"></select>
+        <input id="quickQty" type="number" value="1" min="1"
+          style="width:100px;padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
+        <select id="quickPago" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
           <option value="efectivo">Efectivo</option>
           <option value="tarjeta">Tarjeta</option>
           <option value="qr">QR</option>
         </select>
+        <button id="quickSell" class="btn">Vender</button>
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
-      <button id="confirmCancel" class="btn sec">Cancelar</button>
-      <button id="confirmBtn" class="btn">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Añadir a comanda -->
-<div id="orderAddModal" class="confirm-modal" aria-hidden="true" role="dialog">
-  <div class="confirm-card" role="document">
-    <div style="font-weight:800" id="orderAddProd">Añadir a comanda</div>
-    <div style="margin-top:6px;color:#666" id="orderAddPrice"></div>
-
-    <div class="confirm-row" style="margin-top:12px">
-      <div>
-        <label>Cantidad</label>
-        <input id="orderAddQty" type="number" min="1" value="1">
+    <!-- reporte -->
+    <div class="section">
+      <h3 style="margin:0 0 8px 0">Reporte</h3>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="selectDias" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee">
+          <option value="7">Últimos 7 días</option>
+          <option value="30">Últimos 30 días</option>
+        </select>
+        <div id="reportInfo" style="font-weight:700;color:var(--accent)"></div>
       </div>
-      <div style="flex:1">
-        <label>Agregar a comanda</label>
-        <select id="orderAddSelect" style="width:100%"></select>
+      <div id="reportTable" style="margin-top:12px"></div>
+    </div>
+
+    <!-- ===== COMANDAS ABIERTAS (AÑADIDO) ===== -->
+    <div class="section" id="ordersSection" style="margin-top:18px">
+      <h3 style="margin:0 0 8px 0">Comandas abiertas</h3>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input id="newOrderName" placeholder="Nombre o Mesa (ej: Mesa 4)"
+          style="padding:8px;border-radius:8px;border:1px solid #e6e9ee" />
+        <button id="createOrderBtn" class="btn">Crear comanda</button>
+        <button id="clearOrdersLocal" class="btn sec">Limpiar comandas (local)</button>
+        <small style="color:#666;margin-left:8px">Las comandas abiertas se guardan localmente.</small>
+      </div>
+
+      <div id="ordersList" style="min-height:40px"></div>
+    </div>
+    <!-- ===== FIN COMANDAS ABIERTAS ===== -->
+
+    <!-- ÚLTIMAS VENTAS -->
+    <div class="section">
+      <h3 style="margin:0 0 8px 0">Últimas ventas</h3>
+      <div id="lastSales" style="min-height:40px;color:#333"></div>
+      <div style="margin-top:10px">
+        <button id="undoLast" class="btn sec">Deshacer última venta</button>
+        <small style="margin-left:8px;color:#666">Deshace la venta más reciente (anula y guarda registro de
+          anulación)</small>
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
-      <button id="orderAddCancel" class="btn sec">Cancelar</button>
-      <button id="orderAddConfirm" class="btn">Confirmar</button>
+    <!-- panel de configuración (oculto por defecto) -->
+    <div id="configPanel" class="section" style="display:none;margin-top:18px">
+      <h3 style="margin-top:0">Configuración API</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="apiUrl" placeholder="Pega tu URL Apps Script (Web app) - termina en /exec"
+          style="flex:1;padding:9px;border-radius:8px;border:1px solid #e6e9ee" />
+        <button id="guardarApi" class="btn">Guardar</button>
+        <button id="probarApi" class="btn sec">Probar</button>
+      </div>
+      <div style="margin-top:8px;color:var(--muted);font-size:13px">La URL se guarda en este navegador (localStorage).
+        Si cambias de equipo pega la URL de nuevo.</div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Confirm modal -->
+  <div id="confirmModal" class="confirm-modal" aria-hidden="true" role="dialog">
+    <div class="confirm-card" role="document">
+      <div style="font-weight:800" id="confirmProd">Confirmar venta</div>
+      <div style="margin-top:6px;color:#666" id="confirmPrice"></div>
+
+      <div class="confirm-row" style="margin-top:12px">
+        <div>
+          <label>Cantidad</label>
+          <input id="confirmQty" type="number" min="1" value="1">
+        </div>
+        <div style="flex:1">
+          <label>Pago</label>
+          <select id="confirmPago" style="width:100%">
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="qr">QR</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+        <button id="confirmCancel" class="btn sec">Cancelar</button>
+        <button id="confirmBtn" class="btn">Confirmar</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Modal de resultado -->
-<div id="resultModal" class="result-modal" aria-hidden="true" role="dialog" aria-modal="true">
-  <div class="result-card" role="document">
-    <div id="resultIcon" class="result-icon success" aria-hidden="true">
-      <!-- SVG por defecto (éxito) -->
-      <svg class="check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.14)" stroke-width="2" fill="transparent"/>
-        <path d="M6 12.2l3.2 3.2L18 7" stroke="#fff" stroke-width="2.2" fill="none"/>
-      </svg>
+  <!-- Modal Añadir a comanda -->
+  <div id="orderAddModal" class="confirm-modal" aria-hidden="true" role="dialog">
+    <div class="confirm-card" role="document">
+      <div style="font-weight:800" id="orderAddProd">Añadir a comanda</div>
+      <div style="margin-top:6px;color:#666" id="orderAddPrice"></div>
+
+      <div class="confirm-row" style="margin-top:12px">
+        <div>
+          <label>Cantidad</label>
+          <input id="orderAddQty" type="number" min="1" value="1">
+        </div>
+        <div style="flex:1">
+          <label>Agregar a comanda</label>
+          <select id="orderAddSelect" style="width:100%"></select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+        <button id="orderAddCancel" class="btn sec">Cancelar</button>
+        <button id="orderAddConfirm" class="btn">Confirmar</button>
+      </div>
     </div>
-
-    <div class="result-body">
-      <div id="resultTitle" class="result-title">¡Hecho!</div>
-      <div id="resultText" class="result-text">Venta registrada correctamente.</div>
-    </div>
-
-    <button id="resultClose" class="result-close" aria-label="Cerrar">Cerrar</button>
   </div>
-</div>
 
-<script>
-/* ======= CONFIG / HELPERS ======= */
-const $ = id => document.getElementById(id);
+  <!-- Modal de resultado -->
+  <div id="resultModal" class="result-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="result-card" role="document">
+      <div id="resultIcon" class="result-icon success" aria-hidden="true">
+        <!-- SVG por defecto (éxito) -->
+        <svg class="check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.14)" stroke-width="2" fill="transparent" />
+          <path d="M6 12.2l3.2 3.2L18 7" stroke="#fff" stroke-width="2.2" fill="none" />
+        </svg>
+      </div>
 
-/* ====== SONIDOS ====== */
-const soundOK = new Audio("SONIDOS/ok.mp3");
-const soundERR = new Audio("SONIDOS/error.mp3");
+      <div class="result-body">
+        <div id="resultTitle" class="result-title">¡Hecho!</div>
+        <div id="resultText" class="result-text">Venta registrada correctamente.</div>
+      </div>
 
-soundOK.volume = 0.6;
-soundERR.volume = 0.6;
+      <button id="resultClose" class="result-close" aria-label="Cerrar">Cerrar</button>
+    </div>
+  </div>
 
-// si quieres que la app muestre algo sin API, mantenemos un MENU por defecto
-const DEFAULT_MENU = [
-  { id:1, nombre:"Chicharron", precio:50, categoria:"Comida", imagen:"chicharron.jpg" },
-  { id:2, nombre:"Escabeche", precio:30, categoria:"Comida", imagen:"escabeche.jpg" },
-  { id:3, nombre:"Chorizo", precio:20, categoria:"Comida", imagen:"chorizo.jpg" },
-  { id:4, nombre:"Fricase", precio:30, categoria:"Comida", imagen:"fricase.webp" },
-  { id:5, nombre:"Chicha doble", precio:6, categoria:"Bebida", imagen:"chicha.jpg" },
-  { id:6, nombre:"Chicha lata", precio:70, categoria:"Bebida", imagen:"chicha.jpg" },
-  { id:7, nombre:"Chicha balde", precio:18, categoria:"Bebida", imagen:"chicha.jpg" },
-  { id:8, nombre:"Chicha aloja doble", precio:8, categoria:"Bebida", imagen:"chichaMorada.webp" },
-  { id:9, nombre:"Cerveza unidad", precio:15, categoria:"Bebida", imagen:"cerveza.jpg" },
-  { id:10, nombre:"Refresco 2L", precio:14, categoria:"Bebida", imagen:"Refresco2L.webp" },
-  { id:11, nombre:"Refresco 3L", precio:20, categoria:"Bebida", imagen:"3L.webp" }
-];
+  <!-- Modal Calculadora -->
+  <div id="calcModal" class="confirm-modal" aria-hidden="true" role="dialog">
+    <div class="confirm-card" style="width: 320px;">
+      <div style="font-weight:800; margin-bottom: 12px;">📊 Calculadora de Cambio</div>
+      <div class="calc-container">
+        <div id="calcDisplay" class="calc-display">0</div>
+        <div class="calc-grid">
+          <button class="calc-btn" onclick="calcInput('7')">7</button>
+          <button class="calc-btn" onclick="calcInput('8')">8</button>
+          <button class="calc-btn" onclick="calcInput('9')">9</button>
+          <button class="calc-btn op" onclick="calcInput('/')">/</button>
 
-let API_URL = localStorage.getItem('api_url_rest') || "";
-let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
+          <button class="calc-btn" onclick="calcInput('4')">4</button>
+          <button class="calc-btn" onclick="calcInput('5')">5</button>
+          <button class="calc-btn" onclick="calcInput('6')">6</button>
+          <button class="calc-btn op" onclick="calcInput('*')">*</button>
 
-/* ===== ÚLTIMAS VENTAS (local) ===== */
-let lastSales = JSON.parse(localStorage.getItem("last_sales")) || [];
+          <button class="calc-btn" onclick="calcInput('1')">1</button>
+          <button class="calc-btn" onclick="calcInput('2')">2</button>
+          <button class="calc-btn" onclick="calcInput('3')">3</button>
+          <button class="calc-btn op" onclick="calcInput('-')">-</button>
 
-/* guardamos una referencia a la venta pendiente (confirm modal) */
-let pendingSale = null;
+          <button class="calc-btn" onclick="calcInput('0')">0</button>
+          <button class="calc-btn" onclick="calcInput('.')">.</button>
+          <button class="calc-btn action" onclick="calcClear()">C</button>
+          <button class="calc-btn op" onclick="calcInput('+')">+</button>
 
-function addLastSale(item, qty, pago){
-  const total = Number(item.precio) * Number(qty);
-  const entry = {
-    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-    nombre: item.nombre,
-    qty: Number(qty),
-    total: total,
-    pago: (pago || "efectivo").toLowerCase(),
-    anulada: false
-  };
-  // añadir al inicio
-  lastSales.unshift(entry);
-  // mantener solo últimas 10
-  lastSales = lastSales.slice(0,10);
-  localStorage.setItem("last_sales", JSON.stringify(lastSales));
-  renderLastSales();
-}
+          <button class="calc-btn action" style="grid-column: span 4;" onclick="calcEqual()">Calcular Cambio
+            (Vuelto)</button>
+        </div>
+        <div id="calcResult"
+          style="margin-top: 10px; font-weight: 700; color: var(--accent); text-align: center; font-size: 18px;"></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end">
+        <button onclick="closeCalculator()" class="btn sec">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
-function renderLastSales(){
-  const cont = $('lastSales');
-  if(!cont) return;
-  if(lastSales.length === 0){
-    cont.innerHTML = "<small>No hay ventas aún</small>";
-    return;
-  }
-  cont.innerHTML = lastSales.map((v, idx) => `
+  <script>
+    /* ======= CONFIG / HELPERS ======= */
+    const $ = id => document.getElementById(id);
+
+    /* ====== SONIDOS ====== */
+    const soundOK = new Audio("SONIDOS/ok.mp3");
+    const soundERR = new Audio("SONIDOS/error.mp3");
+
+    soundOK.volume = 0.6;
+    soundERR.volume = 0.6;
+
+    // si quieres que la app muestre algo sin API, mantenemos un MENU por defecto
+    const DEFAULT_MENU = [
+      { id: 1, nombre: "Chicharron", precio: 50, categoria: "Comida", imagen: "chicharron.jpg" },
+      { id: 2, nombre: "Escabeche", precio: 30, categoria: "Comida", imagen: "escabeche.jpg" },
+      { id: 3, nombre: "Chorizo", precio: 20, categoria: "Comida", imagen: "chorizo.jpg" },
+      { id: 4, nombre: "Fricase", precio: 30, categoria: "Comida", imagen: "fricase.webp" },
+      { id: 5, nombre: "Chicha doble", precio: 6, categoria: "Bebida", imagen: "chicha.jpg" },
+      { id: 6, nombre: "Chicha lata", precio: 70, categoria: "Bebida", imagen: "chicha.jpg" },
+      { id: 7, nombre: "Chicha balde", precio: 18, categoria: "Bebida", imagen: "chicha.jpg" },
+      { id: 8, nombre: "Chicha aloja doble", precio: 8, categoria: "Bebida", imagen: "chichaMorada.webp" },
+      { id: 9, nombre: "Cerveza unidad", precio: 15, categoria: "Bebida", imagen: "cerveza.jpg" },
+      { id: 10, nombre: "Refresco 2L", precio: 14, categoria: "Bebida", imagen: "Refresco2L.webp" },
+      { id: 11, nombre: "Refresco 3L", precio: 20, categoria: "Bebida", imagen: "3L.webp" }
+    ];
+
+    let API_URL = localStorage.getItem('api_url_rest') || "";
+    let MENU = DEFAULT_MENU.slice(); // siempre hay algo para mostrar
+
+    /* ===== ÚLTIMAS VENTAS (local) ===== */
+    let lastSales = JSON.parse(localStorage.getItem("last_sales")) || [];
+
+    /* guardamos una referencia a la venta pendiente (confirm modal) */
+    let pendingSale = null;
+
+    function addLastSale(item, qty, pago) {
+      const total = Number(item.precio) * Number(qty);
+      const entry = {
+        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        nombre: item.nombre,
+        qty: Number(qty),
+        total: total,
+        pago: (pago || "efectivo").toLowerCase(),
+        anulada: false
+      };
+      // añadir al inicio
+      lastSales.unshift(entry);
+      // mantener solo últimas 10
+      lastSales = lastSales.slice(0, 10);
+      localStorage.setItem("last_sales", JSON.stringify(lastSales));
+      renderLastSales();
+    }
+
+    function renderLastSales() {
+      const cont = $('lastSales');
+      if (!cont) return;
+      if (lastSales.length === 0) {
+        cont.innerHTML = "<small>No hay ventas aún</small>";
+        return;
+      }
+      cont.innerHTML = lastSales.map((v, idx) => `
     <div class="last-sale ${v.anulada ? 'anulada' : ''}" data-idx="${idx}">
       <small>${v.hora}</small>
       <div class="nombre">${v.nombre} ${v.anulada ? '(ANULADA)' : ''} x${v.qty}</div>
@@ -378,95 +837,95 @@ function renderLastSales(){
       <div><strong>Bs ${Number(v.total).toFixed(2)}</strong></div>
     </div>
   `).join('');
-}
-
-/* DESHACER ÚLTIMA VENTA (anulación) */
-async function undoLastSale(){
-  if(!lastSales || lastSales.length === 0){
-    toast('No hay ventas para deshacer');
-    return;
-  }
-  const last = lastSales[0];
-  // crear entrada de anulación (no borrar el historial)
-  const anulacion = {
-    hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-    nombre: last.nombre,
-    qty: -Math.abs(last.qty || 1),
-    total: -Math.abs(last.total || 0),
-    pago: last.pago,
-    anulada: true
-  };
-  // añadir la anulación al inicio (para que quede visible)
-  lastSales.unshift(anulacion);
-  // limitar a 10 entries
-  lastSales = lastSales.slice(0,10);
-  localStorage.setItem("last_sales", JSON.stringify(lastSales));
-  renderLastSales();
-
-  // intentar notificar a la API (si existe) — opcional y no bloqueante
-  if(API_URL){
-    try{
-      const form = new URLSearchParams();
-      form.append('action','anular_venta');
-      form.append('producto_nombre', last.nombre);
-      form.append('cantidad', last.qty);
-      form.append('total', last.total);
-      form.append('pago', last.pago);
-      await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form.toString() });
-    }catch(e){
-      // ignore — es solo intento
-      console.warn('No se pudo notificar anulación a API', e);
     }
-  }
 
-  // feedback
-  soundERR.currentTime = 0;
-  soundERR.play();
-  toast('Última venta anulada');
-}
+    /* DESHACER ÚLTIMA VENTA (anulación) */
+    async function undoLastSale() {
+      if (!lastSales || lastSales.length === 0) {
+        toast('No hay ventas para deshacer');
+        return;
+      }
+      const last = lastSales[0];
+      // crear entrada de anulación (no borrar el historial)
+      const anulacion = {
+        hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        nombre: last.nombre,
+        qty: -Math.abs(last.qty || 1),
+        total: -Math.abs(last.total || 0),
+        pago: last.pago,
+        anulada: true
+      };
+      // añadir la anulación al inicio (para que quede visible)
+      lastSales.unshift(anulacion);
+      // limitar a 10 entries
+      lastSales = lastSales.slice(0, 10);
+      localStorage.setItem("last_sales", JSON.stringify(lastSales));
+      renderLastSales();
 
-/* ===== Helpers UI ===== */
-function toast(msg){
-  const t = $('toast'); t.textContent=msg; t.style.display='block';
-  setTimeout(()=> t.style.display='none', 2400);
-}
+      // intentar notificar a la API (si existe) — opcional y no bloqueante
+      if (API_URL) {
+        try {
+          const form = new URLSearchParams();
+          form.append('action', 'anular_venta');
+          form.append('producto_nombre', last.nombre);
+          form.append('cantidad', last.qty);
+          form.append('total', last.total);
+          form.append('pago', last.pago);
+          await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+        } catch (e) {
+          // ignore — es solo intento
+          console.warn('No se pudo notificar anulación a API', e);
+        }
+      }
 
-/* determina ruta de imagen — si item.imagen existe se usa */
-function imgFor(item){
-  if(item.imagen) return `Imagenes/${item.imagen}`;
-  const k = (item.nombre||"").toLowerCase().replace(/\s+/g,'');
-  const MAP = {
-  chicharron: "chicharron.jpg",
-  escabeche: "escabeche.jpg",
-  chorizo: "chorizo.jpg",
-  fricase: "fricase.webp",
-  chichadoble: "chicha.jpg",
-  chichalata: "chicha.jpg",
-  chichabalde: "chicha.jpg",
-  chichaalojadoble: "chichaMorada.webp",
-  chichaalojalata: "chichaMorada.webp",
-  chichaalojabalde: "chichaMorada.webp",
-  cervezaunidad: "cerveza.jpg",
-  refresco2l: "Refresco2L.webp",
-  refresco3l: "3L.webp"
-  };
-  return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
-}
+      // feedback
+      soundERR.currentTime = 0;
+      soundERR.play();
+      toast('Última venta anulada');
+    }
 
-/* ===== RENDER MENU ===== */
-function renderMenu(){
-  const q = ($('search').value||"").toLowerCase();
-  const cat = $('filtrocategoria').value || "";
-  const met = $('metrica').value || "precio";
+    /* ===== Helpers UI ===== */
+    function toast(msg) {
+      const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 2400);
+    }
 
-  let list = MENU.slice();
-  if(q) list = list.filter(i => (i.nombre||"").toLowerCase().includes(q));
-  if(cat) list = list.filter(i => i.categoria === cat);
+    /* determina ruta de imagen — si item.imagen existe se usa */
+    function imgFor(item) {
+      if (item.imagen) return `Imagenes/${item.imagen}`;
+      const k = (item.nombre || "").toLowerCase().replace(/\s+/g, '');
+      const MAP = {
+        chicharron: "chicharron.jpg",
+        escabeche: "escabeche.jpg",
+        chorizo: "chorizo.jpg",
+        fricase: "fricase.webp",
+        chichadoble: "chicha.jpg",
+        chichalata: "chicha.jpg",
+        chichabalde: "chicha.jpg",
+        chichaalojadoble: "chichaMorada.webp",
+        chichaalojalata: "chichaMorada.webp",
+        chichaalojabalde: "chichaMorada.webp",
+        cervezaunidad: "cerveza.jpg",
+        refresco2l: "Refresco2L.webp",
+        refresco3l: "3L.webp"
+      };
+      return `Imagenes/${MAP[k] || 'fondoWEB.avif'}`;
+    }
 
-  if(met === 'precio') list.sort((a,b)=> a.precio - b.precio);
-  if(met === 'nombre') list.sort((a,b)=> (a.nombre||'').localeCompare(b.nombre));
+    /* ===== RENDER MENU ===== */
+    function renderMenu() {
+      const q = ($('search').value || "").toLowerCase();
+      const cat = $('filtrocategoria').value || "";
+      const met = $('metrica').value || "precio";
 
-  $('grid').innerHTML = list.map(i => `
+      let list = MENU.slice();
+      if (q) list = list.filter(i => (i.nombre || "").toLowerCase().includes(q));
+      if (cat) list = list.filter(i => i.categoria === cat);
+
+      if (met === 'precio') list.sort((a, b) => a.precio - b.precio);
+      if (met === 'nombre') list.sort((a, b) => (a.nombre || '').localeCompare(b.nombre));
+
+      $('grid').innerHTML = list.map(i => `
     <div class="card" id="card_${i.id}">
       <img src="${imgFor(i)}" alt="${i.nombre}" onerror="this.onerror=null;this.src='Imagenes/fondoWEB.avif'">
       <div class="title">${i.nombre}</div>
@@ -478,293 +937,362 @@ function renderMenu(){
       </div>
     </div>
   `).join('');
-}
+    }
 
-/* ===== SELECTS ===== */
-function loadCats(){
-  const cats = [...new Set(MENU.map(x=>x.categoria).filter(Boolean))];
-  $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-}
-function loadQuick(){ $('quickSelect').innerHTML = MENU.map(i=>`<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
+    /* ===== SELECTS ===== */
+    function loadCats() {
+      const cats = [...new Set(MENU.map(x => x.categoria).filter(Boolean))];
+      $('filtrocategoria').innerHTML = `<option value="">Todas</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    function loadQuick() { $('quickSelect').innerHTML = MENU.map(i => `<option value="${i.id}">${i.nombre} - Bs ${i.precio}</option>`).join(''); }
 
-/* ===== VENTAS ===== */
-/* Opción B: no se vende desde tarjetas, solo se añade a comanda */
-function sell(id){
-  toast('La venta directa está deshabilitada. Usa "Añadir a comanda" y luego "Cerrar comanda".');
-}
+    /* ===== VENTAS ===== */
+    /* Opción B: no se vende desde tarjetas, solo se añade a comanda */
+    function sell(id) {
+      toast('La venta directa está deshabilitada. Usa "Añadir a comanda" y luego "Cerrar comanda".');
+    }
 
-/* === Confirm modal logic === */
-function showConfirmModal(item, qty = 1, pago = 'efectivo'){
-  pendingSale = { item, qty, pago };
-  $('confirmProd').textContent = item.nombre;
-  $('confirmPrice').textContent = `Bs ${Number(item.precio).toFixed(2)}`;
-  $('confirmQty').value = qty;
-  $('confirmPago').value = pago || 'efectivo';
-  const m = $('confirmModal');
-  m.classList.add('show');
-  m.setAttribute('aria-hidden','false');
+    /* === Confirm modal logic === */
+    function showConfirmModal(item, qty = 1, pago = 'efectivo') {
+      pendingSale = { item, qty, pago };
+      $('confirmProd').textContent = item.nombre;
+      $('confirmPrice').textContent = `Bs ${Number(item.precio).toFixed(2)}`;
+      $('confirmQty').value = qty;
+      $('confirmPago').value = pago || 'efectivo';
+      const m = $('confirmModal');
+      m.classList.add('show');
+      m.setAttribute('aria-hidden', 'false');
 
-  // asignar handlers
-  $('confirmCancel').onclick = ()=>{ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); pendingSale = null; };
-  $('confirmBtn').onclick = ()=>{ 
-    const q = Number($('confirmQty').value || 1);
-    const p = $('confirmPago').value || 'efectivo';
-    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
-    // invocar venta real
-    sendSale(item, q, p);
-    pendingSale = null;
-  };
-}
+      // asignar handlers
+      $('confirmCancel').onclick = () => { m.classList.remove('show'); m.setAttribute('aria-hidden', 'true'); pendingSale = null; };
+      $('confirmBtn').onclick = () => {
+        const q = Number($('confirmQty').value || 1);
+        const p = $('confirmPago').value || 'efectivo';
+        m.classList.remove('show'); m.setAttribute('aria-hidden', 'true');
+        // invocar venta real
+        sendSale(item, q, p);
+        pendingSale = null;
+      };
+    }
 
-/* === Helper modal de resultado === */
-function showResultModal(type, title, text, ms = 1800){
-  const modal = $('resultModal');
-  const icon = $('resultIcon');
-  const t = $('resultTitle');
-  const txt = $('resultText');
+    /* === Helper modal de resultado === */
+    function showResultModal(type, title, text, ms = 1800) {
+      const modal = $('resultModal');
+      const icon = $('resultIcon');
+      const t = $('resultTitle');
+      const txt = $('resultText');
 
-  // set visuals
-  if(type === 'success'){
-    icon.className = 'result-icon success';
-    icon.innerHTML = `
+      // set visuals
+      if (type === 'success') {
+        icon.className = 'result-icon success';
+        icon.innerHTML = `
       <svg class="check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.14)" stroke-width="2" fill="transparent"/>
         <path d="M6 12.2l3.2 3.2L18 7" stroke="#fff" stroke-width="2.2" fill="none"/>
       </svg>`;
-  } else {
-    icon.className = 'result-icon error';
-    icon.innerHTML = `
+      } else {
+        icon.className = 'result-icon error';
+        icon.innerHTML = `
       <svg class="cross-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="transparent"/>
         <line x1="8" y1="8" x2="16" y2="16" stroke="#fff" stroke-width="2.2"/>
         <line x1="16" y1="8" x2="8" y2="16" stroke="#fff" stroke-width="2.2"/>
       </svg>`;
-  }
+      }
 
-  t.textContent = title;
-  txt.textContent = text;
+      t.textContent = title;
+      txt.textContent = text;
 
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden','false');
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
 
-  // auto hide
-  if(ms > 0){
-    clearTimeout(modal._hideTO);
-    modal._hideTO = setTimeout(()=>{
+      // auto hide
+      if (ms > 0) {
+        clearTimeout(modal._hideTO);
+        modal._hideTO = setTimeout(() => {
+          modal.classList.remove('show');
+          modal.setAttribute('aria-hidden', 'true');
+        }, ms);
+      }
+    }
+
+    /* cerrar manual */
+    $('resultClose')?.addEventListener('click', () => {
+      const modal = $('resultModal');
+      clearTimeout(modal._hideTO);
       modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
-    }, ms);
-  }
-}
-
-/* cerrar manual */
-$('resultClose')?.addEventListener('click', ()=>{
-  const modal = $('resultModal');
-  clearTimeout(modal._hideTO);
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden','true');
-});
-
-/* === REEMPLAZA sendSale por esta versión === */
-async function sendSale(item, qty, pago = "efectivo"){
-  if(!API_URL){
-    // si no hay API, igual guardamos la venta localmente (útil en campo)
-    addLastSale(item, qty, pago);
-    soundOK.currentTime = 0; soundOK.play();
-    showResultModal('success', 'Venta registrada (local)', 'La venta se guardó localmente porque no hay API.');
-    return;
-  }
-  if(!item){
-    soundERR.currentTime = 0;
-    soundERR.play();
-    showResultModal('error', 'Producto no encontrado', 'Reintenta o recarga el menú.');
-    return;
-  }
-
-  const form = new URLSearchParams();
-  form.append("action","registrar_venta");
-  form.append("producto_id", item.id);
-  form.append("producto_nombre", item.nombre);
-  form.append("cantidad", qty);
-  form.append("precio_unitario", item.precio);
-  form.append("total", item.precio * qty);
-  form.append("pago", pago);
-
-  try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: form.toString()
+      modal.setAttribute('aria-hidden', 'true');
     });
 
-    // intenta parsear JSON, si no parsea usar status
-    let j;
-    try { j = await res.json(); } catch(e){ j = null; }
+    /* === REEMPLAZA sendSale por esta versión === */
+    async function sendSale(item, qty, pago = "efectivo") {
+      if (!API_URL) {
+        // si no hay API, igual guardamos la venta localmente (útil en campo)
+        addLastSale(item, qty, pago);
+        soundOK.currentTime = 0; soundOK.play();
+        showResultModal('success', 'Venta registrada (local)', 'La venta se guardó localmente porque no hay API.');
+        return;
+      }
+      if (!item) {
+        soundERR.currentTime = 0;
+        soundERR.play();
+        showResultModal('error', 'Producto no encontrado', 'Reintenta o recarga el menú.');
+        return;
+      }
 
-    if(res.ok && (j === null || j.ok === true || j.ok === undefined)){
-      // éxito
-      soundOK.currentTime = 0;
-      soundOK.play();
+      const form = new URLSearchParams();
+      form.append("action", "registrar_venta");
+      form.append("producto_id", item.id);
+      form.append("producto_nombre", item.nombre);
+      form.append("cantidad", qty);
+      form.append("precio_unitario", item.precio);
+      form.append("total", item.precio * qty);
+      form.append("pago", pago);
 
-      // AGREGAR A ÚLTIMAS VENTAS (local)
-      addLastSale(item, qty, pago);
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: form.toString()
+        });
 
-      showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
-      // actualizamos reporte (si corresponde)
+        // intenta parsear JSON, si no parsea usar status
+        let j;
+        try { j = await res.json(); } catch (e) { j = null; }
+
+        if (res.ok && (j === null || j.ok === true || j.ok === undefined)) {
+          // éxito
+          soundOK.currentTime = 0;
+          soundOK.play();
+
+          // AGREGAR A ÚLTIMAS VENTAS (local)
+          addLastSale(item, qty, pago);
+
+          showResultModal('success', 'Venta registrada', 'La venta se registró correctamente.');
+          // actualizamos reporte (si corresponde)
+          updateReport();
+        } else {
+          // API respondió con error
+          console.error('API error', j);
+          soundERR.currentTime = 0;
+          soundERR.play();
+          showResultModal('error', 'Error en API', (j && (j.mensaje || j.message)) ? (j.mensaje || j.message) : 'La API no registró la venta.');
+        }
+      } catch (err) {
+        console.error('sendSale error', err);
+        // en caso de fallo de conexión podemos guardar localmente para no perder la venta
+        addLastSale(item, qty, pago);
+        soundOK.currentTime = 0;
+        soundOK.play();
+        showResultModal('success', 'Venta registrada (offline)', 'No se pudo conectar con la API — venta guardada localmente.');
+      }
+    }
+
+    /* ===== REPORTE Y DASHBOARD ===== */
+    let categoryChart, historyChart;
+
+    async function updateReport() {
+      if (!API_URL) {
+        // mostrar reporte vacío si no hay api
+        $('reportInfo').textContent = 'Sin datos (configura API)';
+        $('reportTable').innerHTML = '';
+        return;
+      }
+      try {
+        const dias = $('selectDias').value || 7;
+        const r = await fetch(`${API_URL}?action=reporte&dias=${dias}`);
+        const j = await r.json();
+
+        // UI del reporte tradicional
+        $('reportInfo').textContent = `Ingresos: Bs ${Number(j.ingresos_totales || 0).toFixed(2)}`;
+        $('reportTable').innerHTML = '<ul>' + (j.items || []).map(it => `<li>${it.nombre}: ${it.cantidad} (Bs ${Number(it.total || 0).toFixed(2)})</li>`).join('') + '</ul>';
+
+        // Actualizar Panel Dashboard (Stats)
+        const totalHoy = Number(j.ingresos_totales || 0);
+        $('statToday').textContent = `Bs ${totalHoy.toFixed(2)}`;
+        $('statCount').textContent = (j.items || []).reduce((acc, it) => acc + (it.cantidad || 0), 0);
+
+        if (j.items && j.items.length > 0) {
+          const top = j.items.reduce((prev, current) => (prev.cantidad > current.cantidad) ? prev : current);
+          $('statTopProd').textContent = top.nombre;
+        }
+
+        // Actualizar Gráficos
+        updateCharts(j);
+
+      } catch (err) {
+        console.error('updateReport err', err);
+        $('reportInfo').textContent = 'Error cargando reporte';
+        $('reportTable').innerHTML = '';
+      }
+    }
+
+    function updateCharts(data) {
+      const ctxCat = $('chartCategories').getContext('2d');
+      const ctxHis = $('chartHistory').getContext('2d');
+
+      // Datos para categorías
+      const categories = {};
+      (data.items || []).forEach(it => {
+        // Si la API no devuelve categoría, buscamos en MENU local
+        const meta = MENU.find(m => m.nombre === it.nombre);
+        const cat = meta ? meta.categoria : 'Otros';
+        categories[cat] = (categories[cat] || 0) + Number(it.total);
+      });
+
+      if (categoryChart) categoryChart.destroy();
+      categoryChart = new Chart(ctxCat, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(categories),
+          datasets: [{
+            data: Object.values(categories),
+            backgroundColor: ['#e85a13', '#10b981', '#0ea5e9', '#f59e0b', '#6366f1', '#ec4899']
+          }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      // Datos para historia (Simulado por ahora ya que la API parece devolver solo totales agregados)
+      // Si la API devolviera ventas por fecha, se usaría eso.
+      if (historyChart) historyChart.destroy();
+      historyChart = new Chart(ctxHis, {
+        type: 'bar',
+        data: {
+          labels: (data.items || []).slice(0, 7).map(it => it.nombre),
+          datasets: [{
+            label: 'Ventas por Producto (Bs)',
+            data: (data.items || []).slice(0, 7).map(it => it.total),
+            backgroundColor: 'rgba(232, 90, 13, 0.7)',
+            borderRadius: 8
+          }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    function toggleDashboard() {
+      const charts = $('dashboardCharts');
+      const isHidden = charts.style.display === 'none';
+      charts.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) updateReport(); // Refrescar al abrir
+    }
+
+    /* ===== CARGAR DESDE API (si se configuró) ===== */
+    async function loadMenuFromApi() {
+      if (!API_URL) return;
+      try {
+        const r = await fetch(API_URL + '?action=menu');
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          // normalizar
+          MENU = data.map(it => ({
+            id: it.id ?? it.ID ?? it.producto_id ?? Math.random() * 100000,
+            nombre: it.nombre ?? it.name ?? it.producto_nombre ?? '',
+            precio: Number(it.precio ?? it.precio_venta ?? it.price ?? 0),
+            categoria: it.categoria ?? it.category ?? '',
+            imagen: it.imagen ?? it.image ?? ''
+          }));
+          loadCats(); loadQuick(); renderMenu(); updateReport();
+          return;
+        }
+        // si la API respondió pero sin datos, dejamos DEFAULT_MENU
+        loadCats(); loadQuick(); renderMenu(); updateReport();
+      } catch (err) {
+        console.error('loadMenuFromApi error', err);
+        toast('No se pudo cargar menú desde API (revisa URL)');
+        // dejamos MENU por defecto para que UI funcione
+        loadCats(); loadQuick(); renderMenu(); updateReport();
+      }
+    }
+
+    /* ===== EVENTOS ===== */
+    $('search').addEventListener('input', renderMenu);
+    $('filtrocategoria').addEventListener('change', renderMenu);
+    $('metrica').addEventListener('change', renderMenu);
+    $('btnRefrescar').addEventListener('click', renderMenu);
+
+    $('quickSell').addEventListener('click', async () => {
+      const id = $('quickSelect').value;
+      const qty = Number($('quickQty').value || 1);
+      const pago = $('quickPago').value || 'efectivo';
+      const item = MENU.find(x => String(x.id) === String(id));
+      if (!item) return toast('Selecciona un producto en Registro rápido');
+      showConfirmModal(item, qty, pago);
+    });
+
+    $('selectDias').addEventListener('change', updateReport);
+
+    /* CONFIG toggle */
+    $('btnConfig').addEventListener('click', () => {
+      const panel = $('configPanel');
+      const is = panel.style.display === 'block';
+      panel.style.display = is ? 'none' : 'block';
+      $('btnConfig').setAttribute('aria-expanded', (!is).toString());
+    });
+
+    /* guardar / probar API */
+    $('guardarApi').addEventListener('click', () => {
+      const v = $('apiUrl').value.trim();
+      if (!v) { toast('Pega la URL de tu Apps Script'); return; }
+      API_URL = v;
+      localStorage.setItem('api_url_rest', v);
+      toast('API guardada');
+      loadMenuFromApi();
+    });
+
+    $('probarApi').addEventListener('click', async () => {
+      const v = $('apiUrl').value.trim() || API_URL;
+      if (!v) { toast('No hay URL'); return; }
+      try {
+        const r = await fetch(v + '?action=menu');
+        toast(r.ok ? 'API OK' : 'API respondió con error');
+      } catch (e) { console.error(e); toast('Error al probar API'); }
+    });
+
+    $('undoLast').addEventListener('click', () => { undoLastSale(); });
+
+    /* quick init, mostrar valores guardados y cargar menu local o desde API */
+    (function init() {
+      // llenar campos
+      if ($('apiUrl')) $('apiUrl').value = API_URL;
+      loadCats();
+      loadQuick();
+      renderMenu();
       updateReport();
-    } else {
-      // API respondió con error
-      console.error('API error', j);
-      soundERR.currentTime = 0;
-      soundERR.play();
-      showResultModal('error', 'Error en API', (j && (j.mensaje || j.message)) ? (j.mensaje || j.message) : 'La API no registró la venta.');
+      renderLastSales(); // inicializar listado de últimas ventas
+      // si habia API guardada, intentar cargar desde ella
+      if (API_URL) setTimeout(() => loadMenuFromApi(), 200);
+    })();
+
+    /* ======= COMANDAS: LÓGICA (AÑADIDO) ======= */
+    let ORDERS = JSON.parse(localStorage.getItem('orders_list') || '[]');
+
+    function saveOrdersToStorage() {
+      localStorage.setItem('orders_list', JSON.stringify(ORDERS));
     }
-  }catch(err){
-    console.error('sendSale error', err);
-    // en caso de fallo de conexión podemos guardar localmente para no perder la venta
-    addLastSale(item, qty, pago);
-    soundOK.currentTime = 0;
-    soundOK.play();
-    showResultModal('success', 'Venta registrada (offline)', 'No se pudo conectar con la API — venta guardada localmente.');
-  }
-}
 
-/* ===== REPORTE ===== */
-async function updateReport(){
-  if(!API_URL){
-    // mostrar reporte vacío si no hay api
-    $('reportInfo').textContent = 'Sin datos (configura API)';
-    $('reportTable').innerHTML = '';
-    return;
-  }
-  try{
-    const dias = $('selectDias').value || 7;
-    const r = await fetch(`${API_URL}?action=reporte&dias=${dias}`);
-    const j = await r.json();
-    $('reportInfo').textContent = `Ingresos: Bs ${Number(j.ingresos_totales||0).toFixed(2)}`;
-    $('reportTable').innerHTML = '<ul>' + (j.items||[]).map(it=>`<li>${it.nombre}: ${it.cantidad} (Bs ${Number(it.total||0).toFixed(2)})</li>`).join('') + '</ul>';
-  }catch(err){
-    console.error('updateReport err', err);
-    $('reportInfo').textContent = 'Error cargando reporte';
-    $('reportTable').innerHTML = '';
-  }
-}
-
-/* ===== CARGAR DESDE API (si se configuró) ===== */
-async function loadMenuFromApi(){
-  if(!API_URL) return;
-  try{
-    const r = await fetch(API_URL + '?action=menu');
-    const data = await r.json();
-    if(Array.isArray(data) && data.length>0){
-      // normalizar
-      MENU = data.map(it => ({
-        id: it.id ?? it.ID ?? it.producto_id ?? Math.random()*100000,
-        nombre: it.nombre ?? it.name ?? it.producto_nombre ?? '',
-        precio: Number(it.precio ?? it.precio_venta ?? it.price ?? 0),
-        categoria: it.categoria ?? it.category ?? '',
-        imagen: it.imagen ?? it.image ?? ''
-      }));
-      loadCats(); loadQuick(); renderMenu(); updateReport();
-      return;
-    }
-    // si la API respondió pero sin datos, dejamos DEFAULT_MENU
-    loadCats(); loadQuick(); renderMenu(); updateReport();
-  }catch(err){
-    console.error('loadMenuFromApi error', err);
-    toast('No se pudo cargar menú desde API (revisa URL)');
-    // dejamos MENU por defecto para que UI funcione
-    loadCats(); loadQuick(); renderMenu(); updateReport();
-  }
-}
-
-/* ===== EVENTOS ===== */
-$('search').addEventListener('input', renderMenu);
-$('filtrocategoria').addEventListener('change', renderMenu);
-$('metrica').addEventListener('change', renderMenu);
-$('btnRefrescar').addEventListener('click', renderMenu);
-
-$('quickSell').addEventListener('click', async ()=>{
-  const id = $('quickSelect').value;
-  const qty = Number($('quickQty').value || 1);
-  const pago = $('quickPago').value || 'efectivo';
-  const item = MENU.find(x=>String(x.id)===String(id));
-  if(!item) return toast('Selecciona un producto en Registro rápido');
-  showConfirmModal(item, qty, pago);
-});
-
-$('selectDias').addEventListener('change', updateReport);
-
-/* CONFIG toggle */
-$('btnConfig').addEventListener('click', ()=>{
-  const panel = $('configPanel');
-  const is = panel.style.display === 'block';
-  panel.style.display = is ? 'none' : 'block';
-  $('btnConfig').setAttribute('aria-expanded', (!is).toString());
-});
-
-/* guardar / probar API */
-$('guardarApi').addEventListener('click', ()=>{
-  const v = $('apiUrl').value.trim();
-  if(!v){ toast('Pega la URL de tu Apps Script'); return; }
-  API_URL = v;
-  localStorage.setItem('api_url_rest', v);
-  toast('API guardada');
-  loadMenuFromApi();
-});
-
-$('probarApi').addEventListener('click', async ()=>{
-  const v = $('apiUrl').value.trim() || API_URL;
-  if(!v){ toast('No hay URL'); return; }
-  try{
-    const r = await fetch(v + '?action=menu');
-    toast(r.ok ? 'API OK' : 'API respondió con error');
-  }catch(e){ console.error(e); toast('Error al probar API'); }
-});
-
-$('undoLast').addEventListener('click', ()=>{ undoLastSale(); });
-
-/* quick init, mostrar valores guardados y cargar menu local o desde API */
-(function init(){
-  // llenar campos
-  if($('apiUrl')) $('apiUrl').value = API_URL;
-  loadCats();
-  loadQuick();
-  renderMenu();
-  updateReport();
-  renderLastSales(); // inicializar listado de últimas ventas
-  // si habia API guardada, intentar cargar desde ella
-  if(API_URL) setTimeout(()=>loadMenuFromApi(), 200);
-})();
-
-/* ======= COMANDAS: LÓGICA (AÑADIDO) ======= */
-let ORDERS = JSON.parse(localStorage.getItem('orders_list') || '[]');
-
-function saveOrdersToStorage(){
-  localStorage.setItem('orders_list', JSON.stringify(ORDERS));
-}
-
-function renderOrders(){
-  const cont = $('ordersList');
-  if(!cont) return;
-  if(ORDERS.length === 0){
-    cont.innerHTML = '<small>No hay comandas abiertas</small>';
-    return;
-  }
-  cont.innerHTML = ORDERS.map(o => {
-    const total = o.items.reduce((s,it)=> s + (Number(it.precio)*Number(it.qty)), 0);
-    const itemsHtml = o.items.map(it => `
+    function renderOrders() {
+      const cont = $('ordersList');
+      if (!cont) return;
+      if (ORDERS.length === 0) {
+        cont.innerHTML = '<small>No hay comandas abiertas</small>';
+        return;
+      }
+      cont.innerHTML = ORDERS.map(o => {
+        const total = o.items.reduce((s, it) => s + (Number(it.precio) * Number(it.qty)), 0);
+        const itemsHtml = o.items.map(it => `
       <div style="display:flex;gap:8px;align-items:center;padding:4px 0">
         <div style="flex:1">${it.nombre} x${it.qty}</div>
-        <div>Bs ${Number(it.precio*it.qty).toFixed(2)}</div>
+        <div>Bs ${Number(it.precio * it.qty).toFixed(2)}</div>
         <div style="margin-left:8px">
-          <button onclick="changeQty('${o.id}','${it.producto_id}', ${Math.max(0, it.qty-1)})" class="btn sec">-</button>
-          <button onclick="changeQty('${o.id}','${it.producto_id}', ${it.qty+1})" class="btn sec">+</button>
+          <button onclick="changeQty('${o.id}','${it.producto_id}', ${Math.max(0, it.qty - 1)})" class="btn sec">-</button>
+          <button onclick="changeQty('${o.id}','${it.producto_id}', ${it.qty + 1})" class="btn sec">+</button>
           <button onclick="removeItemFromOrder('${o.id}','${it.producto_id}')" class="btn sec">Quitar</button>
         </div>
       </div>
     `).join('');
-    return `
+        return `
       <div style="border:1px solid #eee;padding:10px;border-radius:10px;margin-bottom:8px;background:#fff">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <strong>${o.name}</strong>
@@ -776,206 +1304,261 @@ function renderOrders(){
         <div style="margin-top:8px;font-weight:700">Total: Bs ${Number(total).toFixed(2)}</div>
       </div>
     `;
-  }).join('');
-}
+      }).join('');
+    }
 
-/* ====== EVENTOS COMANDAS (FIX DEFINITIVO) ====== */
-(() => {
-  const btnCreate = document.getElementById('createOrderBtn');
-  const btnClear  = document.getElementById('clearOrdersLocal');
-  const input     = document.getElementById('newOrderName');
+    /* ====== EVENTOS COMANDAS (FIX DEFINITIVO) ====== */
+    (() => {
+      const btnCreate = document.getElementById('createOrderBtn');
+      const btnClear = document.getElementById('clearOrdersLocal');
+      const input = document.getElementById('newOrderName');
 
-  if(btnCreate){
-    btnCreate.addEventListener('click', () => {
-      const name = (input?.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
-      createOrder(name);
-      if(input) input.value = '';
-    });
-  }
-
-  if(input){
-    input.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter'){
-        e.preventDefault();
-        const name = (input.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
-        createOrder(name);
-        input.value = '';
+      if (btnCreate) {
+        btnCreate.addEventListener('click', () => {
+          const name = (input?.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
+          createOrder(name);
+          if (input) input.value = '';
+        });
       }
-    });
-  }
 
-  if(btnClear){
-    btnClear.addEventListener('click', () => {
-      if(confirm('¿Seguro que deseas eliminar TODAS las comandas locales?')){
-        ORDERS = [];
-        saveOrdersToStorage();
-        renderOrders();
-        toast('Comandas locales limpiadas');
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const name = (input.value || '').trim() || `Mesa ${ORDERS.length + 1}`;
+            createOrder(name);
+            input.value = '';
+          }
+        });
       }
-    });
-  }
-})();
 
-function createOrder(name){
-  const id = 'o_'+(Date.now());
-  const o = { id, name: name||('Mesa '+(ORDERS.length+1)), createdAt: Date.now(), items: [], pago: null, status:'open' };
-  ORDERS.unshift(o);
-  saveOrdersToStorage();
-  renderOrders();
-  toast('Comanda creada: '+o.name);
-  return o;
-}
+      if (btnClear) {
+        btnClear.addEventListener('click', () => {
+          if (confirm('¿Seguro que deseas eliminar TODAS las comandas locales?')) {
+            ORDERS = [];
+            saveOrdersToStorage();
+            renderOrders();
+            toast('Comandas locales limpiadas');
+          }
+        });
+      }
+    })();
 
-function addItemToOrder(orderId, producto, qty=1){
-  const order = ORDERS.find(o=>o.id===orderId);
-  if(!order) return toast('Comanda no encontrada');
-  const it = order.items.find(x=>String(x.producto_id) === String(producto.id));
-  if(it){
-    it.qty += Number(qty);
-  } else {
-    order.items.push({ producto_id: producto.id, nombre: producto.nombre, precio: Number(producto.precio), qty: Number(qty) });
-  }
-  saveOrdersToStorage();
-  renderOrders();
-  toast(producto.nombre + ' añadido a '+order.name);
-}
+    function createOrder(name) {
+      const id = 'o_' + (Date.now());
+      const o = { id, name: name || ('Mesa ' + (ORDERS.length + 1)), createdAt: Date.now(), items: [], pago: null, status: 'open' };
+      ORDERS.unshift(o);
+      saveOrdersToStorage();
+      renderOrders();
+      toast('Comanda creada: ' + o.name);
+      return o;
+    }
 
-function removeItemFromOrder(orderId, productoId){
-  const order = ORDERS.find(o=>o.id===orderId);
-  if(!order) return;
-  order.items = order.items.filter(i => String(i.producto_id) !== String(productoId));
-  saveOrdersToStorage();
-  renderOrders();
-}
+    function addItemToOrder(orderId, producto, qty = 1) {
+      const order = ORDERS.find(o => o.id === orderId);
+      if (!order) return toast('Comanda no encontrada');
+      const it = order.items.find(x => String(x.producto_id) === String(producto.id));
+      if (it) {
+        it.qty += Number(qty);
+      } else {
+        order.items.push({ producto_id: producto.id, nombre: producto.nombre, precio: Number(producto.precio), qty: Number(qty) });
+      }
+      saveOrdersToStorage();
+      renderOrders();
+      toast(producto.nombre + ' añadido a ' + order.name);
+    }
 
-function changeQty(orderId, productoId, qty){
-  const order = ORDERS.find(o=>o.id===orderId); if(!order) return;
-  const it = order.items.find(x=>String(x.producto_id)===String(productoId)); if(!it) return;
-  it.qty = Number(qty) || 0;
-  if(it.qty <= 0) removeItemFromOrder(orderId, productoId);
-  else saveOrdersToStorage();
-  renderOrders();
-}
+    function removeItemFromOrder(orderId, productoId) {
+      const order = ORDERS.find(o => o.id === orderId);
+      if (!order) return;
+      order.items = order.items.filter(i => String(i.producto_id) !== String(productoId));
+      saveOrdersToStorage();
+      renderOrders();
+    }
 
-function getOrderTotal(order){
-  return order.items.reduce((s,it)=> s + (Number(it.precio)*Number(it.qty)), 0);
-}
+    function changeQty(orderId, productoId, qty) {
+      const order = ORDERS.find(o => o.id === orderId); if (!order) return;
+      const it = order.items.find(x => String(x.producto_id) === String(productoId)); if (!it) return;
+      it.qty = Number(qty) || 0;
+      if (it.qty <= 0) removeItemFromOrder(orderId, productoId);
+      else saveOrdersToStorage();
+      renderOrders();
+    }
 
-// Cerrar comanda: registra ventas (envía cada item a sendSale) y marca pagada
-async function closeOrder(orderId, pago='efectivo'){
-  const order = ORDERS.find(o=>o.id===orderId);
-  if(!order) return toast('Comanda no encontrada');
-  if(order.items.length===0) return toast('Comanda vacía');
+    function getOrderTotal(order) {
+      return order.items.reduce((s, it) => s + (Number(it.precio) * Number(it.qty)), 0);
+    }
 
-  // enviar cada item como venta
-  for(const it of order.items){
-    const productoLike = { id: it.producto_id, nombre: it.nombre, precio: it.precio };
-    // espera por si quieres control de red. Puedes quitar await si prefieres paralelo.
-    await sendSale(productoLike, it.qty, pago);
-  }
+    // Cerrar comanda: registra ventas (envía cada item a sendSale) y marca pagada
+    async function closeOrder(orderId, pago = 'efectivo') {
+      const order = ORDERS.find(o => o.id === orderId);
+      if (!order) return toast('Comanda no encontrada');
+      if (order.items.length === 0) return toast('Comanda vacía');
 
-  order.status = 'paid';
-  order.pago = pago;
-  saveOrdersToStorage();
-  renderOrders();
-  toast('Comanda cerrada: '+order.name);
-}
+      // enviar cada item como venta
+      for (const it of order.items) {
+        const productoLike = { id: it.producto_id, nombre: it.nombre, precio: it.precio };
+        // espera por si quieres control de red. Puedes quitar await si prefieres paralelo.
+        await sendSale(productoLike, it.qty, pago);
+      }
 
-// Confirm modal for close (simple prompt)
-function closeOrderPrompt(orderId){
-  const pago = prompt('Tipo de pago: efectivo / qr / tarjeta', 'efectivo') || 'efectivo';
-  if(confirm('Cerrar comanda y registrar ventas?')) closeOrder(orderId, pago);
-}
+      order.status = 'paid';
+      order.pago = pago;
+      saveOrdersToStorage();
+      renderOrders();
+      toast('Comanda cerrada: ' + order.name);
+    }
 
-// Limpieza
-function clearOrdersLocal(){ ORDERS = []; saveOrdersToStorage(); renderOrders(); toast('Comandas locales limpiadas'); }
+    // Confirm modal for close (simple prompt)
+    function closeOrderPrompt(orderId) {
+      const pago = prompt('Tipo de pago: efectivo / qr / tarjeta', 'efectivo') || 'efectivo';
+      if (confirm('Cerrar comanda y registrar ventas?')) closeOrder(orderId, pago);
+    }
 
-// helper para añadir al primer pedido (útil temporalmente)
-window.addToOrder = function(orderId, productId, qty=1){
-  const prod = MENU.find(m=>String(m.id)===String(productId));
-  if(!prod) return toast('Producto no encontrado');
-  addItemToOrder(orderId, prod, qty);
-};
+    // Limpieza
+    function clearOrdersLocal() { ORDERS = []; saveOrdersToStorage(); renderOrders(); toast('Comandas locales limpiadas'); }
 
-/* Opción B: añadir a la comanda más reciente (crea una si no hay) */
-window.addToLatestOrder = function(productId){
-  const prod = MENU.find(m=>String(m.id)===String(productId));
-  if(!prod) return toast('Producto no encontrado');
-  // si no hay comandas, crear una automáticamente
-  if(!ORDERS || ORDERS.length === 0){
-    createOrder(`Mesa ${1}`);
-  }
-  const latest = ORDERS[0]; // la más reciente está al inicio (unshift)
-  const qtyEl = document.getElementById(`qty_${productId}`);
-  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
-  addItemToOrder(latest.id, prod, qty);
-  renderOrders();
-  toast(`${prod.nombre} x${qty} añadido a ${latest.name}`);
-};
+    // helper para añadir al primer pedido (útil temporalmente)
+    window.addToOrder = function (orderId, productId, qty = 1) {
+      const prod = MENU.find(m => String(m.id) === String(productId));
+      if (!prod) return toast('Producto no encontrado');
+      addItemToOrder(orderId, prod, qty);
+    };
+
+    /* Opción B: añadir a la comanda más reciente (crea una si no hay) */
+    window.addToLatestOrder = function (productId) {
+      const prod = MENU.find(m => String(m.id) === String(productId));
+      if (!prod) return toast('Producto no encontrado');
+      // si no hay comandas, crear una automáticamente
+      if (!ORDERS || ORDERS.length === 0) {
+        createOrder(`Mesa ${1}`);
+      }
+      const latest = ORDERS[0]; // la más reciente está al inicio (unshift)
+      const qtyEl = document.getElementById(`qty_${productId}`);
+      const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+      addItemToOrder(latest.id, prod, qty);
+      renderOrders();
+      toast(`${prod.nombre} x${qty} añadido a ${latest.name}`);
+    };
 
 
 
-/* ===== Modal: Añadir a comanda ===== */
-function populateOrderSelect(sel){
-  const opens = (ORDERS||[]).filter(o => o.status === 'open');
-  sel.innerHTML = opens.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
-}
+    /* ===== Modal: Añadir a comanda ===== */
+    function populateOrderSelect(sel) {
+      const opens = (ORDERS || []).filter(o => o.status === 'open');
+      sel.innerHTML = opens.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+    }
 
-window.openAddToOrderModal = function(productId){
-  const prod = MENU.find(m => String(m.id)===String(productId));
-  if(!prod) return toast('Producto no encontrado');
+    window.openAddToOrderModal = function (productId) {
+      const prod = MENU.find(m => String(m.id) === String(productId));
+      if (!prod) return toast('Producto no encontrado');
 
-  // Asegurar al menos una comanda abierta
-  const openCount = (ORDERS||[]).filter(o => o.status === 'open').length;
-  if(openCount === 0){
-    createOrder(`Mesa ${ORDERS.length + 1}`);
-  }
+      // Asegurar al menos una comanda abierta
+      const openCount = (ORDERS || []).filter(o => o.status === 'open').length;
+      if (openCount === 0) {
+        createOrder(`Mesa ${ORDERS.length + 1}`);
+      }
 
-  // Llenar encabezado
-  const title = document.getElementById('orderAddProd');
-  const price = document.getElementById('orderAddPrice');
-  if(title) title.textContent = `Añadir a comanda: ${prod.nombre}`;
-  if(price) price.textContent = `Bs ${Number(prod.precio).toFixed(2)}`;
+      // Llenar encabezado
+      const title = document.getElementById('orderAddProd');
+      const price = document.getElementById('orderAddPrice');
+      if (title) title.textContent = `Añadir a comanda: ${prod.nombre}`;
+      if (price) price.textContent = `Bs ${Number(prod.precio).toFixed(2)}`;
 
-  // Cantidad por defecto: desde el input de la tarjeta si existe
-  const cardQtyEl = document.getElementById(`qty_${productId}`);
-  const qtyInit = cardQtyEl ? Number(cardQtyEl.value || 1) : 1;
-  const qtyEl = document.getElementById('orderAddQty');
-  if(qtyEl) qtyEl.value = qtyInit;
+      // Cantidad por defecto: desde el input de la tarjeta si existe
+      const cardQtyEl = document.getElementById(`qty_${productId}`);
+      const qtyInit = cardQtyEl ? Number(cardQtyEl.value || 1) : 1;
+      const qtyEl = document.getElementById('orderAddQty');
+      if (qtyEl) qtyEl.value = qtyInit;
 
-  // Poblar selector de comandas abiertas
-  const sel = document.getElementById('orderAddSelect');
-  if(sel) populateOrderSelect(sel);
+      // Poblar selector de comandas abiertas
+      const sel = document.getElementById('orderAddSelect');
+      if (sel) populateOrderSelect(sel);
 
-  // Mostrar modal
-  const m = document.getElementById('orderAddModal');
-  if(!m) return;
-  m.classList.add('show');
-  m.setAttribute('aria-hidden','false');
+      // Mostrar modal
+      const m = document.getElementById('orderAddModal');
+      if (!m) return;
+      m.classList.add('show');
+      m.setAttribute('aria-hidden', 'false');
 
-  // Handlers
-  const onCancel = () => {
-    m.classList.remove('show');
-    m.setAttribute('aria-hidden','true');
-  };
-  const onConfirm = () => {
-    const orderId = sel ? sel.value : '';
-    const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
-    if(!orderId){ toast('Selecciona una comanda'); return; }
-    addItemToOrder(orderId, prod, qty);
-    m.classList.remove('show');
-    m.setAttribute('aria-hidden','true');
-  };
+      // Handlers
+      const onCancel = () => {
+        m.classList.remove('show');
+        m.setAttribute('aria-hidden', 'true');
+      };
+      const onConfirm = () => {
+        const orderId = sel ? sel.value : '';
+        const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+        if (!orderId) { toast('Selecciona una comanda'); return; }
+        addItemToOrder(orderId, prod, qty);
+        m.classList.remove('show');
+        m.setAttribute('aria-hidden', 'true');
+      };
 
-  const btnCancel = document.getElementById('orderAddCancel');
-  const btnConfirm = document.getElementById('orderAddConfirm');
-  if(btnCancel) btnCancel.onclick = onCancel;
-  if(btnConfirm) btnConfirm.onclick = onConfirm;
-};
+      const btnCancel = document.getElementById('orderAddCancel');
+      const btnConfirm = document.getElementById('orderAddConfirm');
+      if (btnCancel) btnCancel.onclick = onCancel;
+      if (btnConfirm) btnConfirm.onclick = onConfirm;
+    };
 
-// inicializar render ordenes
-renderOrders();
+    /* ======= CALCULADORA LOGIC ======= */
+    let calcExpression = "";
 
-</script>
+    window.openCalculator = function () {
+      const m = $('calcModal');
+      m.classList.add('show');
+      m.setAttribute('aria-hidden', 'false');
+      calcClear();
+    };
+
+    window.closeCalculator = function () {
+      const m = $('calcModal');
+      m.classList.remove('show');
+      m.setAttribute('aria-hidden', 'true');
+    };
+
+    window.calcInput = function (val) {
+      calcExpression += val;
+      $('calcDisplay').textContent = calcExpression;
+    };
+
+    window.calcClear = function () {
+      calcExpression = "";
+      $('calcDisplay').textContent = "0";
+      $('calcResult').textContent = "";
+    };
+
+    window.calcEqual = function () {
+      try {
+        // Evaluar expresión básisca
+        const result = eval(calcExpression);
+        $('calcDisplay').textContent = result;
+
+        // Si hay un monto de venta (por ejemplo de la última venta), restarlo
+        if (lastSales.length > 0 && !lastSales[0].anulada) {
+          const v = lastSales[0];
+          const cambio = result - v.total;
+          if (cambio >= 0) {
+            $('calcResult').textContent = `Cambio para Bs ${v.total}: Bs ${cambio.toFixed(2)}`;
+            $('calcResult').style.color = 'var(--success)';
+          } else {
+            $('calcResult').textContent = `Faltan: Bs ${Math.abs(cambio).toFixed(2)}`;
+            $('calcResult').style.color = 'var(--error)';
+          }
+        } else {
+          $('calcResult').textContent = "Resultado: " + result;
+        }
+        calcExpression = result.toString();
+      } catch (e) {
+        $('calcDisplay').textContent = "Error";
+        calcExpression = "";
+      }
+    };
+
+    // inicializar render ordenes
+    renderOrders();
+
+  </script>
 </body>
+
 </html>
