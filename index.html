@@ -468,8 +468,9 @@
       font-size: 24px;
       font-weight: 800;
       font-family: monospace;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #cbd5e1;
       min-height: 40px;
+      color: #0f172a !important;
     }
 
     .calc-grid {
@@ -481,15 +482,18 @@
     .calc-btn {
       padding: 15px;
       border-radius: 10px;
-      border: none;
-      background: white;
-      font-weight: 700;
-      font-size: 18px;
-      color: #1e293b;
-      /* Fix: Numbers were white and invisible */
+      border: 1px solid #cbd5e1 !important;
+      background: #ffffff !important;
+      font-weight: 800 !important;
+      font-size: 20px !important;
+      color: #0f172a !important;
+      /* Deep dark blue for maximum visibility */
       cursor: pointer;
       transition: all 0.2s;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .calc-btn:hover {
@@ -498,13 +502,13 @@
     }
 
     .calc-btn.op {
-      background: var(--accent-light);
-      color: var(--accent);
+      background: var(--accent-light) !important;
+      color: var(--accent) !important;
     }
 
     .calc-btn.action {
-      background: var(--accent);
-      color: white;
+      background: var(--accent) !important;
+      color: white !important;
     }
   </style>
 </head>
