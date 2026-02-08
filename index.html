@@ -510,6 +510,85 @@
       background: var(--accent) !important;
       color: white !important;
     }
+
+    .calc-btn.clear {
+      background: #ef4444 !important;
+      color: white !important;
+    }
+
+    /* Chat / Notepad Styles */
+    .chat-section {
+      background: #fff;
+      border-radius: 12px;
+      margin-top: 18px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .06);
+      display: flex;
+      flex-direction: column;
+      height: 400px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      background: #1e293b;
+      color: #fff;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-msg {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      max-width: 80%;
+      align-self: flex-start;
+      border: 1px solid #e2e8f0;
+    }
+
+    .chat-msg.mine {
+      align-self: flex-end;
+      background: #e0f2fe;
+      border-color: #bae6fd;
+    }
+
+    .chat-msg .meta {
+      font-size: 10px;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .chat-msg .text {
+      font-size: 14px;
+      word-break: break-all;
+    }
+
+    .chat-input-area {
+      padding: 12px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      outline: none;
+    }
   </style>
 </head>
 
@@ -634,6 +713,21 @@
       <div id="ordersList" style="min-height:40px"></div>
     </div>
     <!-- ===== FIN COMANDAS ABIERTAS ===== -->
+
+    <!-- BLOC DE NOTAS / CHAT -->
+    <div class="chat-section" id="chatSection">
+      <div class="chat-header">
+        <span>📝 Bloc de Notas / Chat Online</span>
+        <button onclick="syncChat()" class="btn" style="padding: 4px 8px; font-size: 12px;">Refrescar</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <small style="color:#666;text-align:center">Escribe notas sobre deudas o recordatorios aquí.</small>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Escribe una nota..." />
+        <button id="chatSend" class="btn">Enviar</button>
+      </div>
+    </div>
 
     <!-- ÚLTIMAS VENTAS -->
     <div class="section">
@@ -760,8 +854,11 @@
 
           <button class="calc-btn" onclick="calcInput('0')">0</button>
           <button class="calc-btn" onclick="calcInput('.')">.</button>
-          <button class="calc-btn action" onclick="calcClear()">C</button>
-          <button class="calc-btn op" onclick="calcInput('+')">+</button>
+          <button class="calc-btn clear" onclick="calcClear()">AC</button>
+          <button class="calc-btn action" onclick="calcBackspace()">⌫</button>
+
+          <button class="calc-btn op" style="grid-column: span 2;" onclick="calcInput('-')">-</button>
+          <button class="calc-btn op" style="grid-column: span 2;" onclick="calcInput('+')">+</button>
 
           <button class="calc-btn action" style="grid-column: span 4;" onclick="calcEqual()">Calcular Cambio
             (Vuelto)</button>
@@ -1304,9 +1401,14 @@
         return `
       <div style="border:1px solid #eee;padding:10px;border-radius:10px;margin-bottom:8px;background:#fff">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>${o.name}</strong>
-          <div>
-            ${o.status === 'open' ? `<button onclick="closeOrderPrompt('${o.id}')" class="btn">Cerrar comanda</button>` : `<span style="color:#666">Pagada (${o.pago})</span>`}
+          <div style="display:flex; flex-direction:column">
+            <strong>${o.name}</strong>
+            <small style="color:#666">${new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+          </div>
+          <div style="display:flex; gap:8px">
+            ${o.status === 'open' ? `<button onclick="closeOrderPrompt('${o.id}')" class="btn">Cerrar comanda</button>` : `<span style="color:#666; font-weight:700">Pagada (${o.pago})</span>`}
+            <button onclick="deleteOrder('${o.id}')" class="btn clear" style="background:#fee2e2; color:#b91c1c; padding:5px 8px">Eliminar</button>
+            ${o.status === 'paid' ? `<button onclick="reuseOrder('${o.id}')" class="btn sec" style="padding:5px 8px">Reutilizar</button>` : ''}
           </div>
         </div>
         <div style="margin-top:8px">${itemsHtml || '<small>Sin items</small>'}</div>
@@ -1427,6 +1529,111 @@
     // Limpieza
     function clearOrdersLocal() { ORDERS = []; saveOrdersToStorage(); renderOrders(); toast('Comandas locales limpiadas'); }
 
+    function deleteOrder(orderId) {
+      if (confirm('¿Seguro que deseas eliminar esta comanda?')) {
+        ORDERS = ORDERS.filter(o => o.id !== orderId);
+        saveOrdersToStorage();
+        renderOrders();
+        toast('Comanda eliminada');
+      }
+    }
+
+    function reuseOrder(orderId) {
+      const order = ORDERS.find(o => o.id === orderId);
+      if (order) {
+        order.status = 'open';
+        order.pago = null;
+        order.items = []; // Limpiamos los items para que la mesa esté lista para clientes nuevos
+        saveOrdersToStorage();
+        renderOrders();
+        toast('Mesa ' + order.name + ' lista para nuevos clientes');
+      }
+    }
+
+    /* ======= CHAT / NOTES LOGIC ======= */
+    let CHAT_MESSAGES = JSON.parse(localStorage.getItem('chat_notes') || '[]');
+
+    function renderChat() {
+      const cont = $('chatMessages');
+      if (!cont) return;
+      if (CHAT_MESSAGES.length === 0) {
+        cont.innerHTML = '<small style="color:#666;text-align:center">Escribe notas sobre deudas o recordatorios aquí.</small>';
+        return;
+      }
+      cont.innerHTML = CHAT_MESSAGES.map(m => `
+        <div class="chat-msg ${m.mine ? 'mine' : ''}">
+          <div class="meta">${m.time}</div>
+          <div class="text">${m.text}</div>
+        </div>
+      `).join('');
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+      const input = $('chatInput');
+      const text = (input.value || '').trim();
+      if (!text) return;
+
+      const msg = {
+        text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }),
+        mine: true
+      };
+
+      CHAT_MESSAGES.push(msg);
+      // Mantener solo los últimos 50
+      if (CHAT_MESSAGES.length > 50) CHAT_MESSAGES.shift();
+
+      localStorage.setItem('chat_notes', JSON.stringify(CHAT_MESSAGES));
+      input.value = '';
+      renderChat();
+
+      // Si hay API, intentar sincronizar (opcional)
+      if (API_URL) {
+        try {
+          const form = new URLSearchParams();
+          form.append('action', 'guardar_nota');
+          form.append('nota', text);
+          fetch(API_URL, { method: 'POST', body: form });
+        } catch (e) {
+          console.warn('No se pudo sincronizar nota con API');
+        }
+      }
+    }
+
+    async function syncChat() {
+      if (!API_URL) {
+        toast('Configura la API para sincronizar notas online');
+        return;
+      }
+      try {
+        const r = await fetch(API_URL + '?action=leer_notas');
+        const data = await r.json();
+        if (Array.isArray(data)) {
+          // Unir con locales o reemplazar? 
+          // Por simplicidad para el usuario "chat online", reemplazamos con lo que diga el servidor
+          CHAT_MESSAGES = data.map(d => ({
+            text: d.nota || d.text,
+            time: d.fecha || d.time || '',
+            mine: false
+          }));
+          localStorage.setItem('chat_notes', JSON.stringify(CHAT_MESSAGES));
+          renderChat();
+          toast('Notas sincronizadas');
+        }
+      } catch (e) {
+        toast('Error al sincronizar notas');
+      }
+    }
+
+    $('chatSend').addEventListener('click', sendChatMessage);
+    $('chatInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+
+    // Cargar chat inicial
+    renderChat();
+
     // helper para añadir al primer pedido (útil temporalmente)
     window.addToOrder = function (orderId, productId, qty = 1) {
       const prod = MENU.find(m => String(m.id) === String(productId));
@@ -1537,25 +1744,41 @@
       $('calcResult').textContent = "";
     };
 
+    window.calcBackspace = function () {
+      if (calcExpression.length > 0) {
+        calcExpression = calcExpression.slice(0, -1);
+        $('calcDisplay').textContent = calcExpression || "0";
+      }
+    };
+
     window.calcEqual = function () {
       try {
-        // Evaluar expresión básisca
+        if (!calcExpression) return;
+        // Evaluar expresión básica
         const result = eval(calcExpression);
         $('calcDisplay').textContent = result;
 
-        // Si hay un monto de venta (por ejemplo de la última venta), restarlo
+        // Si hay una comanda seleccionada o una última venta, calculamos el vuelto
+        let montoAVenta = 0;
+
         if (lastSales.length > 0 && !lastSales[0].anulada) {
-          const v = lastSales[0];
-          const cambio = result - v.total;
+          montoAVenta = lastSales[0].total;
+        }
+
+        if (montoAVenta > 0) {
+          const cambio = result - montoAVenta;
           if (cambio >= 0) {
-            $('calcResult').textContent = `Cambio para Bs ${v.total}: Bs ${cambio.toFixed(2)}`;
+            $('calcResult').innerHTML = `<div style="font-size:14px; color:#666">Total venta: Bs ${montoAVenta.toFixed(2)}</div>
+                                         <div style="font-size:22px">Vuelto: <strong>Bs ${cambio.toFixed(2)}</strong></div>`;
             $('calcResult').style.color = 'var(--success)';
           } else {
-            $('calcResult').textContent = `Faltan: Bs ${Math.abs(cambio).toFixed(2)}`;
-            $('calcResult').style.color = 'var(--error)';
+            $('calcResult').innerHTML = `<div style="font-size:14px; color:#666">Total venta: Bs ${montoAVenta.toFixed(2)}</div>
+                                         <div style="font-size:22px">Falta: <strong>Bs ${Math.abs(cambio).toFixed(2)}</strong></div>`;
+            $('calcResult').style.color = '#ef4444';
           }
         } else {
           $('calcResult').textContent = "Resultado: " + result;
+          $('calcResult').style.color = '#1e293b';
         }
         calcExpression = result.toString();
       } catch (e) {
